@@ -142,28 +142,6 @@ test_that("C++ Cox response parser handles two-column matrix", {
 })
 
 
-test_that("C++ Cox response parser handles list", {
-  response <- list(
-    time = c(5, 4, 3, 2),
-    status = c(1, 0, 1, 0)
-  )
-
-  actual <- sgl_parse_cox_response_cpp(
-    response
-  )
-
-  expect_equal(
-    actual$time[, 1L],
-    response$time
-  )
-
-  expect_equal(
-    actual$status[, 1L],
-    response$status
-  )
-})
-
-
 test_that("C++ Cox response parser rejects no-event data", {
   expect_error(
     sgl_parse_cox_response_cpp(

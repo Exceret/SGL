@@ -386,7 +386,7 @@ Rcpp::NumericVector sgl_make_lambda_path_cpp(
                 static_cast<double>(i)
             );
     }
-    if (result[n_lambda - 1] >
+    if (result[n_lambda - 1] <
             lambda_min)
     {
         const double log_max =
@@ -416,146 +416,62 @@ Rcpp::NumericVector sgl_make_lambda_path_cpp(
 
 // [[Rcpp::export]]
 Rcpp::List sgl_parse_cox_response_cpp(
-    const Rcpp::RObject& response
+    const arma::mat& response
 )
 {
-    Rcpp::NumericVector time;
-    Rcpp::NumericVector status;
-    if (Rf_inherits(
-                response,
-                "Surv"
-            ))
-    {
-        /*
-         * Surv 对象通常是带有 class = "Surv"
-         * 的矩阵型对象。
-         */
-        Rcpp::NumericMatrix value =
-            Rcpp::as<Rcpp::NumericMatrix>(
-                response
-            );
-        if (value.ncol() != 2)
-        {
-            Rcpp::stop(
-                "Only right-censored Cox responses "
-                "are supported."
-            );
-        }
-        time =
-            Rcpp::NumericVector(
-                value.nrow()
-            );
-        status =
-            Rcpp::NumericVector(
-                value.nrow()
-            );
-        for (R_xlen_t i = 0;
-                i < value.nrow();
-                ++i)
-        {
-            time[i] =
-                value(i, 0);
-            status[i] =
-                value(i, 1);
-        }
-    }
-    else if (
-        Rf_isMatrix(response)
-    )
-    {
-        Rcpp::NumericMatrix value =
-            Rcpp::as<Rcpp::NumericMatrix>(
-                response
-            );
-        if (value.ncol() != 2)
-        {
-            Rcpp::stop(
-                "Cox matrix response must have "
-                "exactly two columns."
-            );
-        }
-        time =
-            Rcpp::NumericVector(
-                value.nrow()
-            );
-        status =
-            Rcpp::NumericVector(
-                value.nrow()
-            );
-        for (R_xlen_t i = 0;
-                i < value.nrow();
-                ++i)
-        {
-            time[i] =
-                value(i, 0);
-            status[i] =
-                value(i, 1);
-        }
-    }
-    else if (
-        Rf_isNewList(response)
-    )
-    {
-        Rcpp::List value(response);
-        if (!value.containsElementNamed("time") ||
-                !value.containsElementNamed("status"))
-        {
-            Rcpp::stop(
-                "Cox response list must contain "
-                "time and status."
-            );
-        }
-        time =
-            Rcpp::as<Rcpp::NumericVector>(
-                value["time"]
-            );
-        status =
-            Rcpp::as<Rcpp::NumericVector>(
-                value["status"]
-            );
-    }
-    else
+    if (response.n_cols != 2)
     {
         Rcpp::stop(
-            "Cox response must be a Surv object, "
-            "a two-column matrix, or a list with "
+            "Cox response must be an n x 2 matrix: "
             "time and status."
         );
     }
-    if (time.size() != status.size())
+    if (response.n_rows == 0)
     {
         Rcpp::stop(
-            "Cox time and status must have "
-            "the same length."
+            "Cox response must contain at least "
+            "one observation."
         );
     }
-    if (time.size() == 0)
+    if (!response.is_finite())
     {
         Rcpp::stop(
-            "Cox response must not be empty."
+            "Cox response must contain only finite values."
         );
     }
+    const arma::uword n =
+        response.n_rows;
+    arma::mat time(
+        n,
+        1,
+        arma::fill::none
+    );
+    arma::mat status(
+        n,
+        1,
+        arma::fill::none
+    );
     bool has_event = false;
-    for (R_xlen_t i = 0;
-            i < time.size();
+    for (arma::uword i = 0;
+            i < n;
             ++i)
     {
-        if (!std::isfinite(time[i]) ||
-                !std::isfinite(status[i]))
-        {
-            Rcpp::stop(
-                "Cox time and status must contain "
-                "only finite values."
-            );
-        }
-        if (status[i] != 0.0 &&
-                status[i] != 1.0)
+        const double time_i =
+            response(i, 0);
+        const double status_i =
+            response(i, 1);
+        if (status_i != 0.0 &&
+                status_i != 1.0)
         {
             Rcpp::stop(
                 "Cox status must contain only 0 and 1."
             );
         }
-        if (status[i] == 1.0)
+        time(i, 0) =
+            time_i;
+        status(i, 0) =
+            status_i;
+        if (status_i == 1.0)
         {
             has_event = true;
         }
@@ -567,14 +483,8 @@ Rcpp::List sgl_parse_cox_response_cpp(
         );
     }
     return Rcpp::List::create(
-               Rcpp::_["time"] =
-                   Rcpp::NumericMatrix(
-                       time
-                   ),
-               Rcpp::_["status"] =
-                   Rcpp::NumericMatrix(
-                       status
-                   )
+               Rcpp::_["time"] = time,
+               Rcpp::_["status"] = status
            );
 }
 

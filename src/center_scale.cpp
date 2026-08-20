@@ -1,19 +1,19 @@
-#include <Rcpp.h>
-
+#include <RcppArmadillo.h>
 #include <cmath>
 
+// [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins(cpp11)]]
 
 // [[Rcpp::export]]
 Rcpp::List sgl_center_scale_cpp(
-    const Rcpp::NumericMatrix& X,
+    const arma::mat& X,
     const bool standardize = true
 )
 {
-    const R_xlen_t n =
-        X.nrow();
-    const R_xlen_t p =
-        X.ncol();
+    const arma::uword n =
+        X.n_rows;
+    const arma::uword p =
+        X.n_cols;
     if (n == 0)
     {
         Rcpp::stop(
@@ -26,86 +26,103 @@ Rcpp::List sgl_center_scale_cpp(
             "X must contain at least one column."
         );
     }
-    if (!Rcpp::is_true(
-                Rcpp::all(Rcpp::is_finite(X))
-            ))
+    if (!X.is_finite())
     {
         Rcpp::stop(
             "X must contain only finite values."
         );
     }
     /*
-     * 保持原接口约定：
-     *
-     *   X.transform: p x 2
-     *
-     *   第 1 列：列均值
-     *   第 2 列：缩放因子
+     * p x 1 的列均值。
      */
-    Rcpp::NumericMatrix X_transform(
+    arma::rowvec X_means =
+        arma::mean(X, 0);
+    /*
+     * 中心化矩阵。
+     */
+    arma::mat X_centered =
+        X;
+    X_centered.each_row() -=
+                  X_means;
+    /*
+     * 原 SGL 的 scale：
+     *
+     *   sqrt(sum((X[, j] - mean_j)^2))
+     *
+     * 注意：这里不除以 n，也不除以 n - 1。
+     */
+    arma::rowvec X_scale(
         p,
-        2
+        arma::fill::none
     );
-    Rcpp::NumericMatrix X_scaled(
-        n,
-        p
-    );
-    for (R_xlen_t j = 0;
+    for (arma::uword j = 0;
             j < p;
             ++j)
     {
-        double sum = 0.0;
-        for (R_xlen_t i = 0;
+        double squared_norm = 0.0;
+        for (arma::uword i = 0;
                 i < n;
                 ++i)
         {
-            sum += X(i, j);
+            const double value =
+                X_centered(i, j);
+            squared_norm +=
+                value * value;
         }
-        const double center =
-            sum / static_cast<double>(n);
-        double scale =
-            1.0;
-        if (standardize && n > 1)
+        X_scale[j] =
+            std::sqrt(squared_norm);
+        /*
+         * 常数列避免除零。
+         * X_centered 该列本身为 0。
+         */
+        if (!std::isfinite(X_scale[j]) ||
+                X_scale[j] <= 0.0)
         {
-            double squared_sum = 0.0;
-            for (R_xlen_t i = 0;
-                    i < n;
-                    ++i)
-            {
-                const double centered =
-                    X(i, j) - center;
-                squared_sum +=
-                    centered * centered;
-            }
-            /*
-             * 与 R::sd() 一致，使用 n - 1。
-             */
-            const double variance =
-                squared_sum /
-                static_cast<double>(n - 1);
-            scale = std::sqrt(variance);
-            /*
-             * 常数列或退化列不进行除零。
-             * 这时保持中心化结果，并令 scale = 1。
-             */
-            if (!std::isfinite(scale) ||
-                    scale <= 0.0)
-            {
-                scale = 1.0;
-            }
+            X_scale[j] = 1.0;
         }
+    }
+    /*
+     * standardize = TRUE：
+     *
+     *   X_scaled[, j] =
+     *       X_centered[, j] / X_scale[j]
+     *
+     * standardize = FALSE：
+     *
+     *   只中心化，不缩放；
+     *   但 X.transform 第二列仍保存真实 scale。
+     */
+    arma::mat X_scaled =
+        X_centered;
+    if (standardize)
+    {
+        for (arma::uword j = 0;
+                j < p;
+                ++j)
+        {
+            X_scaled.col(j) /=
+                        X_scale[j];
+        }
+    }
+    /*
+     * X.transform 为 p x 2 matrix：
+     *
+     *   第 1 列：X.means
+     *   第 2 列：X.scale
+     */
+    arma::mat X_transform(
+        p,
+        2,
+        arma::fill::none
+    );
+    for (arma::uword j = 0;
+            j < p;
+            ++j)
+    {
         X_transform(j, 0) =
-            center;
+            X_means[j];
         X_transform(j, 1) =
-            scale;
-        for (R_xlen_t i = 0;
-                i < n;
-                ++i)
-        {
-            X_scaled(i, j) =
-                (X(i, j) - center) /
-                scale;
-        }
+            X_scale[j];
     }
     return Rcpp::List::create(
                Rcpp::_["x"] =

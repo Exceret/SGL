@@ -12,12 +12,12 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // sgl_center_scale_cpp
-Rcpp::List sgl_center_scale_cpp(const Rcpp::NumericMatrix& X, const bool standardize);
+Rcpp::List sgl_center_scale_cpp(const arma::mat& X, const bool standardize);
 RcppExport SEXP _SGL2_sgl_center_scale_cpp(SEXP XSEXP, SEXP standardizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
     Rcpp::traits::input_parameter< const bool >::type standardize(standardizeSEXP);
     rcpp_result_gen = Rcpp::wrap(sgl_center_scale_cpp(X, standardize));
     return rcpp_result_gen;
@@ -53,12 +53,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // sgl_parse_cox_response_cpp
-Rcpp::List sgl_parse_cox_response_cpp(const Rcpp::RObject& response);
+Rcpp::List sgl_parse_cox_response_cpp(const arma::mat& response);
 RcppExport SEXP _SGL2_sgl_parse_cox_response_cpp(SEXP responseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::RObject& >::type response(responseSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type response(responseSEXP);
     rcpp_result_gen = Rcpp::wrap(sgl_parse_cox_response_cpp(response));
     return rcpp_result_gen;
 END_RCPP

@@ -364,9 +364,7 @@ SGL <- function(
       1 - 1e-8
     )
 
-    initial_intercept <- qlogis(
-      initial_probability
-    )
+    initial_intercept <- stats::qlogis(initial_probability)
 
     initial_gradient <- crossprod(
       X_fit,
@@ -375,12 +373,18 @@ SGL <- function(
       n
 
     lambda_max <- .SGL_lambda_max_from_gradient(
-      initial_gradient
+      gradient = initial_gradient,
+      group_index = group_index,
+      group_weight = group_weight,
+      alpha = alpha
     )
 
     lambda_path <- .SGL_make_lambda_path(
-      lambda_path,
-      lambda_max
+      lambdas = lambda_path,
+      lambda_max = lambda_max,
+      nlam = nlam,
+      min_frac = min.frac,
+      gamma = gamma
     )
 
     step_size <- step / (1 + 0.25 * sum(X_fit * X_fit) / n)
@@ -399,9 +403,7 @@ SGL <- function(
       ncol = n_lambda
     )
 
-    intercept_path <- numeric(
-      n_lambda
-    )
+    intercept_path <- numeric(n_lambda)
 
     fits <- vector(
       mode = "list",
@@ -440,11 +442,9 @@ SGL <- function(
 
       fits[[lambda_index]] <- fit
 
-      beta_path[, lambda_index] <-
-        fit$beta[, 1L]
+      beta_path[, lambda_index] <- fit$beta[, 1L]
 
-      intercept_path[lambda_index] <-
-        fit$intercept[1L, 1L]
+      intercept_path[lambda_index] <- fit$intercept[1L, 1L]
 
       beta_start <- fit$beta
       intercept_start <- fit$intercept
@@ -471,16 +471,22 @@ SGL <- function(
       X.transform = X_transform
     )
   } else {
-    cox <- sgl_parse_cox_response_cpp(
-      data$y
-    )
+    if (is.null(data$y)) {
+      data$y <- cbind(data$time, data$status)
+    }
+
+    if (!is.matrix(data$y)) {
+      stop(
+        "data$y must be a matrix for type = 'cox'."
+      )
+    }
+
+    cox <- sgl_parse_cox_response_cpp(data$y)
 
     time <- cox$time[, 1L]
     status <- cox$status[, 1L]
 
-    initial_beta <- numeric(
-      p
-    )
+    initial_beta <- numeric(p)
 
     initial_gradient <- .SGL_cox_zero_gradient(
       X = X_fit,
@@ -489,17 +495,21 @@ SGL <- function(
     )
 
     lambda_max <- .SGL_lambda_max_from_gradient(
-      initial_gradient
+      gradient = initial_gradient,
+      group_index = group_index,
+      group_weight = group_weight,
+      alpha = alpha
     )
 
     lambda_path <- .SGL_make_lambda_path(
-      lambda_path,
-      lambda_max
+      lambdas = lambda_path,
+      lambda_max = lambda_max,
+      nlam = nlam,
+      min_frac = min.frac,
+      gamma = gamma
     )
 
-    n_events <- sum(
-      status == 1
-    )
+    n_events <- sum(status == 1)
 
     step_size <- step / (1 + sum(X_fit * X_fit) / n_events)
 
