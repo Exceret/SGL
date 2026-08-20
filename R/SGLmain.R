@@ -51,7 +51,7 @@ SGL <- function(
     stop("data$x must be a numeric matrix.")
   }
 
-  if (any(!is.finite(data$x))) {
+  if (!all(is.finite(data$x))) {
     stop("data$x must contain only finite values.")
   }
 
@@ -74,7 +74,7 @@ SGL <- function(
   index_values <- as.numeric(index)
 
   if (
-    any(!is.finite(index_values)) ||
+    !all(is.finite(index_values)) ||
       any(index_values < 1) ||
       any(index_values != floor(index_values))
   ) {
@@ -179,7 +179,7 @@ SGL <- function(
     if (
       !is.numeric(lambdas) ||
         length(lambdas) == 0L ||
-        any(!is.finite(lambdas)) ||
+        !all(is.finite(lambdas)) ||
         any(lambdas < 0)
     ) {
       stop(
@@ -194,203 +194,10 @@ SGL <- function(
 
   invisible(reset)
 
-  transformed <- center_scale(
-    X,
-    standardize
-  )
+  transformed <- sgl_center_scale_cpp(X, standardize)
 
   X_fit <- transformed$x
   X_transform <- transformed$X.transform
-
-  lambda_max_from_gradient <- function(
-    gradient
-  ) {
-    gradient <- as.numeric(gradient)
-
-    value <- 0
-
-    if (alpha > 0) {
-      value <- max(
-        value,
-        max(abs(gradient)) / alpha
-      )
-    }
-
-    if (alpha < 1) {
-      for (g in seq_len(n_groups)) {
-        selected <- which(
-          group_index[, 1L] == g
-        )
-
-        weight <- group_weight[g, 1L]
-
-        if (weight > 0) {
-          group_value <- sqrt(
-            sum(gradient[selected]^2)
-          ) /
-            ((1 - alpha) * weight)
-
-          value <- max(
-            value,
-            group_value
-          )
-        }
-      }
-    }
-
-    max(
-      value,
-      .Machine$double.eps
-    )
-  }
-
-  make_lambda_path <- function(
-    supplied_lambda,
-    lambda_max
-  ) {
-    if (!is.null(supplied_lambda)) {
-      return(as.numeric(supplied_lambda))
-    }
-
-    lambda_max <- max(
-      as.numeric(lambda_max),
-      .Machine$double.eps
-    )
-
-    if (nlam == 1L) {
-      return(lambda_max)
-    }
-
-    lambda_min <- max(
-      lambda_max * min.frac,
-      .Machine$double.eps
-    )
-
-    candidate <- lambda_max *
-      gamma^(0:(nlam - 1L))
-
-    if (tail(candidate, 1L) > lambda_min) {
-      candidate <- exp(seq(
-        log(lambda_max),
-        log(lambda_min),
-        length.out = nlam
-      ))
-    }
-
-    as.numeric(candidate)
-  }
-
-  parse_cox_response <- function(
-    response
-  ) {
-    if (inherits(response, "Surv")) {
-      response_matrix <- as.matrix(response)
-
-      if (ncol(response_matrix) != 2L) {
-        stop(
-          "Only right-censored Cox responses are supported."
-        )
-      }
-
-      time <- response_matrix[, 1L]
-      status <- response_matrix[, 2L]
-    } else if (
-      is.matrix(response) &&
-        ncol(response) == 2L
-    ) {
-      time <- response[, 1L]
-      status <- response[, 2L]
-    } else if (
-      is.list(response) &&
-        !is.null(response$time) &&
-        !is.null(response$status)
-    ) {
-      time <- response$time
-      status <- response$status
-    } else {
-      stop(
-        "For type = 'cox', data$y must be a Surv object, a two-column matrix, or a list with time and status."
-      )
-    }
-
-    time <- as.numeric(time)
-    status <- as.numeric(status)
-
-    if (
-      length(time) != n ||
-        length(status) != n
-    ) {
-      stop(
-        "Cox time and status must have nrow(data$x) values."
-      )
-    }
-
-    if (
-      any(!is.finite(time)) ||
-        any(!is.finite(status))
-    ) {
-      stop(
-        "Cox time and status must contain only finite values."
-      )
-    }
-
-    if (!all(status %in% c(0, 1))) {
-      stop(
-        "Cox status must contain only 0 and 1."
-      )
-    }
-
-    if (!any(status == 1)) {
-      stop(
-        "Cox response must contain at least one event."
-      )
-    }
-
-    list(
-      time = matrix(time, ncol = 1L),
-      status = matrix(status, ncol = 1L)
-    )
-  }
-
-  cox_zero_gradient <- function(
-    X,
-    time,
-    status
-  ) {
-    event_times <- sort(
-      unique(time[status == 1]),
-      decreasing = TRUE
-    )
-
-    gradient <- numeric(
-      ncol(X)
-    )
-
-    for (event_time in event_times) {
-      event_index <- which(
-        time == event_time &
-          status == 1
-      )
-
-      risk_index <- which(
-        time >= event_time
-      )
-
-      risk_mean <- colMeans(
-        X[risk_index, , drop = FALSE]
-      )
-
-      event_sum <- colSums(
-        X[event_index, , drop = FALSE]
-      )
-
-      gradient <- gradient +
-        length(event_index) * risk_mean -
-        event_sum
-    }
-
-    gradient / sum(status == 1)
-  }
 
   if (identical(type, "linear")) {
     if (
@@ -406,7 +213,7 @@ SGL <- function(
 
     if (
       length(y) != n ||
-        any(!is.finite(y))
+        !all(is.finite(y))
     ) {
       stop(
         "data$y must contain n finite values."
@@ -435,13 +242,19 @@ SGL <- function(
     ) /
       n
 
-    lambda_max <- lambda_max_from_gradient(
-      initial_gradient
+    lambda_max <- .SGL_lambda_max_from_gradient(
+      gradient = initial_gradient,
+      group_index = group_index,
+      group_weight = group_weight,
+      alpha = alpha
     )
 
-    lambda_path <- make_lambda_path(
-      lambda_path,
-      lambda_max
+    lambda_path <- .SGL_make_lambda_path(
+      lambdas = lambda_path,
+      lambda_max = lambda_max,
+      nlam = nlam,
+      min_frac = min.frac,
+      gamma = gamma
     )
 
     step_size <- step / (1 + sum(X_fit * X_fit) / n)
@@ -493,8 +306,7 @@ SGL <- function(
 
       fits[[lambda_index]] <- fit
 
-      beta_path[, lambda_index] <-
-        fit$beta[, 1L]
+      beta_path[, lambda_index] <- fit$beta[, 1L]
 
       beta_start <- fit$beta
       intercept_start <- fit$intercept
@@ -534,7 +346,7 @@ SGL <- function(
 
     if (
       length(y) != n ||
-        any(!is.finite(y)) ||
+        !all(is.finite(y)) ||
         !all(y %in% c(0, 1))
     ) {
       stop(
@@ -562,11 +374,11 @@ SGL <- function(
     ) /
       n
 
-    lambda_max <- lambda_max_from_gradient(
+    lambda_max <- .SGL_lambda_max_from_gradient(
       initial_gradient
     )
 
-    lambda_path <- make_lambda_path(
+    lambda_path <- .SGL_make_lambda_path(
       lambda_path,
       lambda_max
     )
@@ -659,7 +471,7 @@ SGL <- function(
       X.transform = X_transform
     )
   } else {
-    cox <- parse_cox_response(
+    cox <- sgl_parse_cox_response_cpp(
       data$y
     )
 
@@ -670,17 +482,17 @@ SGL <- function(
       p
     )
 
-    initial_gradient <- cox_zero_gradient(
+    initial_gradient <- .SGL_cox_zero_gradient(
       X = X_fit,
       time = time,
       status = status
     )
 
-    lambda_max <- lambda_max_from_gradient(
+    lambda_max <- .SGL_lambda_max_from_gradient(
       initial_gradient
     )
 
-    lambda_path <- make_lambda_path(
+    lambda_path <- .SGL_make_lambda_path(
       lambda_path,
       lambda_max
     )
@@ -735,8 +547,7 @@ SGL <- function(
 
       fits[[lambda_index]] <- fit
 
-      beta_path[, lambda_index] <-
-        fit$beta[, 1L]
+      beta_path[, lambda_index] <- fit$beta[, 1L]
 
       beta_start <- fit$beta
 
@@ -766,25 +577,3 @@ SGL <- function(
 
   result
 }
-
-center_scale <- function(X, standardize) {
-  means <- apply(X, 2, mean)
-  X <- t(t(X) - means)
-
-  X.transform <- list(X.means = means)
-
-  if (standardize == TRUE) {
-    var <- apply(X, 2, function(x) (sqrt(sum(x^2))))
-    X <- t(t(X) / var)
-    X.transform$X.scale <- var
-  } else {
-    X.transform$X.scale <- 1
-  }
-
-  return(list(x = X, X.transform = X.transform))
-}
-# form_folds <- function(n_obs, nfold) {
-#   folds <- cut(seq(1, n_obs), breaks = nfold, labels = FALSE)
-#   folds_final <- sample(folds, replace = FALSE)
-#   return(folds_final)
-# }

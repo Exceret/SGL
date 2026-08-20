@@ -87,7 +87,7 @@ sgl_logistic_fit <- function(
   )
 
   if (
-    any(!is.finite(groups)) ||
+    !all(is.finite(groups)) ||
       any(groups < 1) ||
       any(groups != floor(groups))
   ) {
@@ -200,9 +200,9 @@ sgl_logistic_fit <- function(
 
 #' @export
 print.sgl_logistic_fit <- function(x, ...) {
-  cat("Logistic sparse-group lasso fit\n")
-  cat("Objective:", format(x$objective), "\n")
-  cat("Iterations:", x$iterations, "\n")
-  cat("Converged:", x$converged, "\n")
+  message("Logistic sparse-group lasso fit\n")
+  message("Objective:", format(x$objective), "\n")
+  message("Iterations:", x$iterations, "\n")
+  message("Converged:", x$converged, "\n")
   invisible(x)
 }

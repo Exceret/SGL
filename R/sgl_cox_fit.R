@@ -21,7 +21,7 @@ sgl_cox_fit <- function(
     stop("X must be a numeric matrix.")
   }
 
-  if (any(!is.finite(X))) {
+  if (!all(is.finite(X))) {
     stop("X must contain only finite values.")
   }
 
@@ -43,12 +43,12 @@ sgl_cox_fit <- function(
     )
   }
 
-  if (any(!is.finite(time))) {
+  if (!all(is.finite(time))) {
     stop("time must contain only finite values.")
   }
 
   if (
-    any(!is.finite(status)) ||
+    !all(is.finite(status)) ||
       !all(status[, 1L] %in% c(0, 1))
   ) {
     stop("status must contain only 0 and 1.")
@@ -110,7 +110,7 @@ sgl_cox_fit <- function(
   }
 
   if (
-    any(!is.finite(groups)) ||
+    !all(is.finite(groups)) ||
       any(groups < 1) ||
       any(groups != floor(groups))
   ) {
@@ -151,7 +151,7 @@ sgl_cox_fit <- function(
     }
 
     if (
-      any(!is.finite(group_weight)) ||
+      !all(is.finite(group_weight)) ||
         any(group_weight < 0)
     ) {
       stop(
@@ -177,7 +177,7 @@ sgl_cox_fit <- function(
       )
     }
 
-    if (any(!is.finite(initial_beta))) {
+    if (!all(is.finite(initial_beta))) {
       stop(
         "initial_beta must contain only finite values."
       )
@@ -222,10 +222,10 @@ sgl_cox_fit <- function(
 
 #' @export
 print.sgl_cox_fit <- function(x, ...) {
-  cat("Cox sparse-group lasso fit\n")
-  cat("Ties method: Breslow\n")
-  cat("Objective:", format(x$objective), "\n")
-  cat("Iterations:", x$iterations, "\n")
-  cat("Converged:", x$converged, "\n")
+  message("Cox sparse-group lasso fit\n")
+  message("Ties method: Breslow\n")
+  message("Objective:", format(x$objective), "\n")
+  message("Iterations:", x$iterations, "\n")
+  message("Converged:", x$converged, "\n")
   invisible(x)
 }

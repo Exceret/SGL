@@ -11,6 +11,71 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// sgl_center_scale_cpp
+Rcpp::List sgl_center_scale_cpp(const Rcpp::NumericMatrix& X, const bool standardize);
+RcppExport SEXP _SGL2_sgl_center_scale_cpp(SEXP XSEXP, SEXP standardizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const bool >::type standardize(standardizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(sgl_center_scale_cpp(X, standardize));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sgl_lambda_max_from_gradient_cpp
+double sgl_lambda_max_from_gradient_cpp(const arma::mat& gradient, const arma::mat& group_index, const arma::mat& group_weight, const double alpha);
+RcppExport SEXP _SGL2_sgl_lambda_max_from_gradient_cpp(SEXP gradientSEXP, SEXP group_indexSEXP, SEXP group_weightSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type gradient(gradientSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type group_index(group_indexSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type group_weight(group_weightSEXP);
+    Rcpp::traits::input_parameter< const double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(sgl_lambda_max_from_gradient_cpp(gradient, group_index, group_weight, alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sgl_make_lambda_path_cpp
+Rcpp::NumericVector sgl_make_lambda_path_cpp(const Rcpp::Nullable<Rcpp::NumericVector> lambda_input, const double lambda_max, const int n_lambda, const double min_frac, const double lambda_decay);
+RcppExport SEXP _SGL2_sgl_make_lambda_path_cpp(SEXP lambda_inputSEXP, SEXP lambda_maxSEXP, SEXP n_lambdaSEXP, SEXP min_fracSEXP, SEXP lambda_decaySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::NumericVector> >::type lambda_input(lambda_inputSEXP);
+    Rcpp::traits::input_parameter< const double >::type lambda_max(lambda_maxSEXP);
+    Rcpp::traits::input_parameter< const int >::type n_lambda(n_lambdaSEXP);
+    Rcpp::traits::input_parameter< const double >::type min_frac(min_fracSEXP);
+    Rcpp::traits::input_parameter< const double >::type lambda_decay(lambda_decaySEXP);
+    rcpp_result_gen = Rcpp::wrap(sgl_make_lambda_path_cpp(lambda_input, lambda_max, n_lambda, min_frac, lambda_decay));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sgl_parse_cox_response_cpp
+Rcpp::List sgl_parse_cox_response_cpp(const Rcpp::RObject& response);
+RcppExport SEXP _SGL2_sgl_parse_cox_response_cpp(SEXP responseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::RObject& >::type response(responseSEXP);
+    rcpp_result_gen = Rcpp::wrap(sgl_parse_cox_response_cpp(response));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sgl_cox_zero_gradient_cpp
+Rcpp::NumericMatrix sgl_cox_zero_gradient_cpp(const arma::mat& X, const arma::mat& time, const arma::mat& status);
+RcppExport SEXP _SGL2_sgl_cox_zero_gradient_cpp(SEXP XSEXP, SEXP timeSEXP, SEXP statusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type time(timeSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type status(statusSEXP);
+    rcpp_result_gen = Rcpp::wrap(sgl_cox_zero_gradient_cpp(X, time, status));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sgl_cox_fit_cpp
 Rcpp::List sgl_cox_fit_cpp(const arma::mat& X, const arma::mat& time, const arma::mat& status, const arma::mat& group_index, const arma::mat& group_weight, const arma::mat& initial_beta, const double lambda, const double alpha, const double step_size, const int max_iter, const double tol);
 RcppExport SEXP _SGL2_sgl_cox_fit_cpp(SEXP XSEXP, SEXP timeSEXP, SEXP statusSEXP, SEXP group_indexSEXP, SEXP group_weightSEXP, SEXP initial_betaSEXP, SEXP lambdaSEXP, SEXP alphaSEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP tolSEXP) {
@@ -368,12 +433,12 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport void Cox(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport void coxSolver(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport void linNest(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport void logitNest(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-
 static const R_CallMethodDef CallEntries[] = {
+    {"_SGL2_sgl_center_scale_cpp", (DL_FUNC) &_SGL2_sgl_center_scale_cpp, 2},
+    {"_SGL2_sgl_lambda_max_from_gradient_cpp", (DL_FUNC) &_SGL2_sgl_lambda_max_from_gradient_cpp, 4},
+    {"_SGL2_sgl_make_lambda_path_cpp", (DL_FUNC) &_SGL2_sgl_make_lambda_path_cpp, 5},
+    {"_SGL2_sgl_parse_cox_response_cpp", (DL_FUNC) &_SGL2_sgl_parse_cox_response_cpp, 1},
+    {"_SGL2_sgl_cox_zero_gradient_cpp", (DL_FUNC) &_SGL2_sgl_cox_zero_gradient_cpp, 3},
     {"_SGL2_sgl_cox_fit_cpp", (DL_FUNC) &_SGL2_sgl_cox_fit_cpp, 11},
     {"_SGL2_sgl_group_l2_norm_cpp", (DL_FUNC) &_SGL2_sgl_group_l2_norm_cpp, 1},
     {"_SGL2_sgl_group_layout_cpp", (DL_FUNC) &_SGL2_sgl_group_layout_cpp, 1},
@@ -399,10 +464,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SGL2_sgl_logistic_nll_cpp", (DL_FUNC) &_SGL2_sgl_logistic_nll_cpp, 2},
     {"_SGL2_sgl_sparse_group_prox_cpp", (DL_FUNC) &_SGL2_sgl_sparse_group_prox_cpp, 4},
     {"_SGL2_sgl_prox_test", (DL_FUNC) &_SGL2_sgl_prox_test, 4},
-    {"Cox",       (DL_FUNC) &Cox,       11},
-    {"coxSolver", (DL_FUNC) &coxSolver, 25},
-    {"linNest",   (DL_FUNC) &linNest,   20},
-    {"logitNest", (DL_FUNC) &logitNest, 20},
     {NULL, NULL, 0}
 };
 
