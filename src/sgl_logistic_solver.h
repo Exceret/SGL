@@ -1,11 +1,11 @@
-#ifndef SGL_LOGISTIC_SOLVER_HPP
-#define SGL_LOGISTIC_SOLVER_HPP
+#ifndef SGL_LOGISTIC_SOLVER_H
+#define SGL_LOGISTIC_SOLVER_H
 
 #include <RcppArmadillo.h>
 #include <cmath>
 
-#include "sgl_group_prox.hpp"
-#include "sgl_intercept_update.hpp"
+#include "sgl_group_prox.h"
+#include "sgl_intercept_update.h"
 
 namespace sgl
 {

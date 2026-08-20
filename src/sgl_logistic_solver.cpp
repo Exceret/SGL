@@ -3,9 +3,9 @@
 #include <cmath>
 #include <vector>
 
-#include "sgl_group_prox.hpp"
-#include "sgl_logistic_solver.hpp"
-#include "sgl_linear_predictor.hpp"
+#include "sgl_group_prox.h"
+#include "sgl_logistic_solver.h"
+#include "sgl_linear_predictor.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

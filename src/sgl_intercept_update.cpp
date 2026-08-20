@@ -1,7 +1,7 @@
 #include <RcppArmadillo.h>
 #include <cmath>
 
-#include "sgl_intercept_update.hpp"
+#include "sgl_intercept_update.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

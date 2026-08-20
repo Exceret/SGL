@@ -1,11 +1,11 @@
-#ifndef SGL_LINEAR_SOLVER_HPP
-#define SGL_LINEAR_SOLVER_HPP
+#ifndef SGL_LINEAR_SOLVER_H
+#define SGL_LINEAR_SOLVER_H
 
 #include <RcppArmadillo.h>
 #include <algorithm>
 #include <cmath>
 
-#include "sgl_group_prox.hpp"
+#include "sgl_group_prox.h"
 
 namespace sgl
 {

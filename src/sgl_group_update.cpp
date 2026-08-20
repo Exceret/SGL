@@ -3,8 +3,8 @@
 #include <cmath>
 #include <vector>
 
-#include "sgl_group_prox.hpp"
-#include "sgl_group_update.hpp"
+#include "sgl_group_prox.h"
+#include "sgl_group_update.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

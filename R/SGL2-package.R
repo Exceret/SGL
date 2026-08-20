@@ -1,4 +1,5 @@
 #' @keywords internal
+#' @importFrom Rcpp evalCpp
 "_PACKAGE"
 
 ## usethis namespace: start

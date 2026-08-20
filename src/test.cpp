@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include "sgl_prox.hpp"
+#include "sgl_prox.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

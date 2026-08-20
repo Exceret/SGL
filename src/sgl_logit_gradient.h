@@ -1,5 +1,5 @@
-#ifndef SGL_LOGIT_GRADIENT_HPP
-#define SGL_LOGIT_GRADIENT_HPP
+#ifndef SGL_LOGIT_GRADIENT_H
+#define SGL_LOGIT_GRADIENT_H
 
 #include <RcppArmadillo.h>
 #include <cmath>

@@ -1,5 +1,5 @@
-#ifndef SGL_GROUP_PROX_HPP
-#define SGL_GROUP_PROX_HPP
+#ifndef SGL_GROUP_PROX_H
+#define SGL_GROUP_PROX_H
 
 #include <RcppArmadillo.h>
 #include <cmath>

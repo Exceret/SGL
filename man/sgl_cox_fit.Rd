@@ -2,23 +2,83 @@
 % Please edit documentation in R/sgl_cox_fit.R
 \name{sgl_cox_fit}
 \alias{sgl_cox_fit}
-\title{Fit a Cox sparse-group lasso model.}
+\alias{print.sgl_cox_fit}
+\title{Fit a Cox proportional hazards model with a sparse-group lasso penalty}
 \usage{
-sgl_cox_fit(
-  X,
-  time,
-  status,
-  group_index,
-  lambda,
-  alpha = 1,
-  group_weight = NULL,
-  step_size = NULL,
-  max_iter = 1000L,
-  tol = 1e-08,
-  initial_beta = NULL
-)
+sgl_cox_fit(X, time, status, group_index, lambda, alpha = 1,
+  group_weight = NULL, step_size = NULL, max_iter = 1000L, tol = 1e-8,
+  initial_beta = NULL)
+
+\method{print}{sgl_cox_fit}(x, ...)
+}
+\arguments{
+\item{X}{A numeric design matrix with \code{n} rows and \code{p} columns.}
+
+\item{time}{A numeric single-column matrix with \code{n} rows containing
+the failure/censoring times.}
+
+\item{status}{A numeric single-column matrix with \code{n} rows containing
+the event indicators: 1 for an observed event and 0 for censoring.  At
+least one event is required.}
+
+\item{group_index}{A single-column matrix of length \code{p} giving the
+group label (a positive integer between 1 and G) of each predictor.}
+
+\item{lambda}{One finite non-negative penalty value.}
+
+\item{alpha}{The mixing parameter between 0 and 1.  \code{alpha = 1} is
+the lasso penalty, \code{alpha = 0} is the group lasso penalty.}
+
+\item{group_weight}{Optional G x 1 matrix of group weights.  Defaults to
+the square roots of the group sizes.}
+
+\item{step_size}{Optional positive step size for the proximal gradient
+updates.  Defaults to the reciprocal of an upper bound on the Lipschitz
+constant of the gradient.}
+
+\item{max_iter}{Maximum number of iterations.}
+
+\item{tol}{Convergence tolerance on the change in the objective.}
+
+\item{initial_beta}{Optional p x 1 matrix of starting coefficient values.}
+
+\item{x}{An object of class \code{"sgl_cox_fit"}, as returned by
+\code{\link{sgl_cox_fit}}.}
+
+\item{...}{Additional arguments passed to other methods (currently
+unused).}
+}
+\value{
+A list with class \code{"sgl_cox_fit"} containing the fitted
+\code{beta}, the linear \code{prediction} and \code{eta}, the final
+\code{objective} (the negative Breslow partial log-likelihood), the
+number of \code{iterations} and a logical \code{converged} flag.
 }
 \description{
-Cox uses the Breslow approximation for tied event times.
-No ordinary intercept is fitted.
+Fits a Cox proportional hazards regression model with the sparse-group
+lasso penalty for a single value of the penalty parameter \code{lambda}.
+Ties in event times are handled with the Breslow approximation.  No
+ordinary intercept is fitted.
+}
+\details{
+The partial log-likelihood is maximized subject to the penalty
+\deqn{\lambda\left(\alpha \|\beta\|_1 +
+(1 - \alpha)\sum_g w_g \|\beta_g\|_2\right),}{%
+lambda * (alpha * ||b||_1 + (1 - alpha) * sum_g w_g ||b_g||_2),}
+with group weights \eqn{w_g = \sqrt{|g|}} by default.
+}
+\examples{
+set.seed(1)
+n <- 60; p <- 12
+X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+time <- matrix(rexp(n), ncol = 1)
+status <- matrix(rbinom(n, 1, 0.6), ncol = 1)
+group_index <- matrix(rep(1:4, each = 3), ncol = 1)
+fit <- sgl_cox_fit(X, time, status, group_index, lambda = 0.05)
+print(fit)
+
+}
+\seealso{
+\code{\link{SGL}}, \code{\link{sgl_linear_fit}},
+\code{\link{sgl_logistic_fit}}
 }

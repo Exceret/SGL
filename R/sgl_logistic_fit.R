@@ -1,3 +1,60 @@
+#' Fit a logistic sparse-group lasso model
+#'
+#' Fits a logistic regression model with the sparse-group lasso penalty for a
+#' single value of the penalty parameter \code{lambda}.  The optimized
+#' objective is
+#' \deqn{-\frac{1}{n}\sum_{i=1}^n
+#' \left[y_i \log p_i + (1 - y_i) \log(1 - p_i)\right] +
+#' \lambda\left(\alpha \|\beta\|_1 +
+#' (1 - \alpha)\sum_g w_g \|\beta_g\|_2\right),}{%
+#' -1/n * sum_i [y_i log p_i + (1-y_i) log(1-p_i)] +
+#' lambda * (alpha * ||b||_1 + (1 - alpha) * sum_g w_g ||b_g||_2),}
+#' where \eqn{p_i} is the fitted probability for observation \eqn{i} and the
+#' group weights \eqn{w_g = \sqrt{|g|}} by default.
+#'
+#' @usage
+#' sgl_logistic_fit(X, y, group_index, lambda, alpha = 1,
+#'   group_weight = NULL, step_size = NULL, max_iter = 1000L, tol = 1e-8,
+#'   fit_intercept = TRUE, initial_beta = NULL, initial_intercept = NULL)
+#'
+#' @param X A numeric design matrix with \code{n} rows and \code{p} columns.
+#' @param y A single-column numeric matrix with \code{n} rows containing the
+#'   binary response, with values in \code{{0, 1}}.
+#' @param group_index A single-column matrix of length \code{p} giving the
+#'   group label (a positive integer between 1 and G) of each predictor.
+#' @param lambda One finite non-negative penalty value.
+#' @param alpha The mixing parameter between 0 and 1.  \code{alpha = 1} is
+#'   the lasso penalty, \code{alpha = 0} is the group lasso penalty.
+#' @param group_weight Optional G x 1 matrix of group weights.  Defaults to
+#'   the square roots of the group sizes.
+#' @param step_size Optional positive step size for the proximal gradient
+#'   updates.  Defaults to the reciprocal of an upper bound on the Lipschitz
+#'   constant of the gradient.
+#' @param max_iter Maximum number of iterations.
+#' @param tol Convergence tolerance on the change in the objective.
+#' @param fit_intercept Logical; whether to fit an intercept.
+#' @param initial_beta Optional p x 1 matrix of starting coefficient values.
+#' @param initial_intercept Optional 1 x 1 matrix of starting intercept
+#'   values.
+#'
+#' @return A list with class \code{"sgl_logistic_fit"} containing the fitted
+#'   \code{beta} and \code{intercept}, the linear \code{prediction} and
+#'   \code{eta}, the final \code{objective}, the number of \code{iterations}
+#'   and a logical \code{converged} flag.
+#'
+#' @seealso \code{\link{SGL}}, \code{\link{sgl_linear_fit}},
+#'   \code{\link{sgl_cox_fit}}
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 60; p <- 12
+#' X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+#' y <- matrix(rbinom(n, 1, 0.4), ncol = 1)
+#' group_index <- matrix(rep(1:4, each = 3), ncol = 1)
+#' fit <- sgl_logistic_fit(X, y, group_index, lambda = 0.05)
+#' print(fit)
+#'
+#' @export
 sgl_logistic_fit <- function(
   X,
   y,
@@ -195,7 +252,14 @@ sgl_logistic_fit <- function(
 }
 
 
+#' @param x An object of class \code{"sgl_logistic_fit"}, as returned by
+#'   \code{\link{sgl_logistic_fit}}.
+#' @param ... Additional arguments passed to other methods (currently
+#'   unused).
+#'
 #' @export
+#' @method print sgl_logistic_fit
+#' @rdname sgl_logistic_fit
 print.sgl_logistic_fit <- function(x, ...) {
   message("Logistic sparse-group lasso fit\n")
   message("Objective:", format(x$objective), "\n")

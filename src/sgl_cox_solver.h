@@ -1,5 +1,5 @@
-#ifndef SGL_COX_SOLVER_HPP
-#define SGL_COX_SOLVER_HPP
+#ifndef SGL_COX_SOLVER_H
+#define SGL_COX_SOLVER_H
 
 #include <RcppArmadillo.h>
 
@@ -7,7 +7,7 @@
 #include <limits>
 #include <vector>
 
-#include "sgl_linear_solver.hpp"
+#include "sgl_linear_solver.h"
 
 namespace sgl
 {

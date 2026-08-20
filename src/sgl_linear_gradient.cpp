@@ -1,6 +1,6 @@
 #include <RcppArmadillo.h>
 
-#include "sgl_linear_gradient.hpp"
+#include "sgl_linear_gradient.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

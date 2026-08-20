@@ -1,6 +1,6 @@
 #include <RcppArmadillo.h>
 
-#include "sgl_group_norm.hpp"
+#include "sgl_group_norm.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

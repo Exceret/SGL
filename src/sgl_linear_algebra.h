@@ -1,5 +1,5 @@
-#ifndef SGL_LINEAR_ALGEBRA_HPP
-#define SGL_LINEAR_ALGEBRA_HPP
+#ifndef SGL_LINEAR_ALGEBRA_H
+#define SGL_LINEAR_ALGEBRA_H
 
 #include <RcppArmadillo.h>
 

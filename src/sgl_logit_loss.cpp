@@ -1,6 +1,6 @@
 #include <RcppArmadillo.h>
 
-#include "sgl_logit_loss.hpp"
+#include "sgl_logit_loss.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

@@ -1,6 +1,6 @@
 #include <RcppArmadillo.h>
 
-#include "sgl_linear_predictor.hpp"
+#include "sgl_linear_predictor.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

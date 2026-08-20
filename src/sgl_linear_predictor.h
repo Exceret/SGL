@@ -1,5 +1,5 @@
-#ifndef SGL_LINEAR_PREDICTOR_HPP
-#define SGL_LINEAR_PREDICTOR_HPP
+#ifndef SGL_LINEAR_PREDICTOR_H
+#define SGL_LINEAR_PREDICTOR_H
 
 #include <RcppArmadillo.h>
 

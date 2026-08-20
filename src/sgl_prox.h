@@ -1,5 +1,5 @@
-#ifndef SGL_PROX_HPP
-#define SGL_PROX_HPP
+#ifndef SGL_PROX_H
+#define SGL_PROX_H
 
 #include <RcppArmadillo.h>
 #include <cmath>

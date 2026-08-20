@@ -1,5 +1,5 @@
-#ifndef SGL_LOGIT_LOSS_HPP
-#define SGL_LOGIT_LOSS_HPP
+#ifndef SGL_LOGIT_LOSS_H
+#define SGL_LOGIT_LOSS_H
 
 #include <RcppArmadillo.h>
 #include <cmath>

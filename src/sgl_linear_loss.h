@@ -1,5 +1,5 @@
-#ifndef SGL_LINEAR_LOSS_HPP
-#define SGL_LINEAR_LOSS_HPP
+#ifndef SGL_LINEAR_LOSS_H
+#define SGL_LINEAR_LOSS_H
 
 #include <RcppArmadillo.h>
 

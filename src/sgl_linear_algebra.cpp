@@ -1,7 +1,7 @@
 #include <RcppArmadillo.h>
 #include <cmath>
 
-#include "sgl_linear_algebra.hpp"
+#include "sgl_linear_algebra.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

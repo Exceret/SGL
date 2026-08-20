@@ -1,5 +1,5 @@
-#ifndef SGL_GROUP_NORM_HPP
-#define SGL_GROUP_NORM_HPP
+#ifndef SGL_GROUP_NORM_H
+#define SGL_GROUP_NORM_H
 
 #include <RcppArmadillo.h>
 #include <cmath>

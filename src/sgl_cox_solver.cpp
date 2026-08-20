@@ -4,7 +4,7 @@
 #include <cmath>
 #include <vector>
 
-#include "sgl_cox_solver.hpp"
+#include "sgl_cox_solver.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

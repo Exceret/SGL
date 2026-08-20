@@ -1,7 +1,7 @@
 #include <RcppArmadillo.h>
 #include <cmath>
 
-#include "sgl_prox.hpp"
+#include "sgl_prox.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

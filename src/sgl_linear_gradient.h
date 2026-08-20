@@ -1,5 +1,5 @@
-#ifndef SGL_LINEAR_GRADIENT_HPP
-#define SGL_LINEAR_GRADIENT_HPP
+#ifndef SGL_LINEAR_GRADIENT_H
+#define SGL_LINEAR_GRADIENT_H
 
 #include <RcppArmadillo.h>
 

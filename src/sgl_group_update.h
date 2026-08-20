@@ -1,10 +1,10 @@
-#ifndef SGL_GROUP_UPDATE_HPP
-#define SGL_GROUP_UPDATE_HPP
+#ifndef SGL_GROUP_UPDATE_H
+#define SGL_GROUP_UPDATE_H
 
 #include <RcppArmadillo.h>
 #include <cmath>
 
-#include "sgl_group_prox.hpp"
+#include "sgl_group_prox.h"
 
 namespace sgl
 {

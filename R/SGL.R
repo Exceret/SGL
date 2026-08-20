@@ -1,6 +1,67 @@
-#' Fit a sparse-group lasso model.
+#' Fit a sparse-group lasso model
 #'
-#' @inheritParams SGL::SGL
+#' Fits a regularized generalized linear model via penalized maximum
+#' likelihood with a combination of lasso and group lasso penalties.  The
+#' model is fit for a path of values of the penalty parameter \code{lambda}.
+#' Fits linear, logistic and Cox models.  The SGL penalty is
+#' \deqn{\lambda (\alpha \|\beta\|_1 + (1 - \alpha) \sum_g w_g \|\beta_g\|_2)}{lambda * (alpha * ||beta||_1 + (1 - alpha) * sum_g w_g ||beta_g||_2)}
+#' where the weights \eqn{w_g} are the square roots of the group sizes.
+#'
+#' @param data For \code{type = "linear"} should be a list with \code{x} an
+#'   input matrix of dimension n-obs by p-vars, and \code{y} a length n
+#'   response vector.  For \code{type = "logit"} should be a list with
+#'   \code{x}, an input matrix as before, and \code{y} a length n binary
+#'   response vector.  For \code{type = "cox"} should be a list with
+#'   \code{x} as before, \code{time}, an n-vector of failure/censor times,
+#'   and \code{status}, an n-vector indicating failure (1) or censoring (0).
+#' @param index A p-vector indicating group membership of each covariate.
+#' @param type Model type: one of \code{"linear"}, \code{"logit"},
+#'   \code{"cox"}.
+#' @param maxit Maximum number of iterations to convergence.
+#' @param thresh Convergence threshold for change in beta.
+#' @param min.frac The minimum value of the penalty parameter, as a fraction
+#'   of the maximum value.
+#' @param nlam Number of lambda values to use in the regularization path.
+#' @param gamma Fitting parameter used for tuning backtracking (between 0 and
+#'   1).
+#' @param standardize Logical flag for variable standardization prior to
+#'   fitting the model.
+#' @param verbose Logical flag for whether or not step number will be output.
+#' @param step Fitting parameter used for initial backtracking step size
+#'   (between 0 and 1).
+#' @param reset Fitting parameter used for taking advantage of local strong
+#'   convexity in Nesterov momentum (number of iterations before momentum
+#'   term is reset).
+#' @param alpha The mixing parameter.  \code{alpha = 1} is the lasso penalty;
+#'   \code{alpha = 0} is the group lasso penalty.
+#' @param lambdas A user specified sequence of lambda values for fitting.  We
+#'   recommend leaving this \code{NULL} and letting \code{SGL} self-select
+#'   values.
+#'
+#' @return An object with S3 class \code{"SGL"}:
+#'   \item{beta}{A p by nlam matrix of coefficient estimates.}
+#'   \item{lambdas}{The actual list of lambda values used in the
+#'     regularization path.}
+#'   \item{type}{Response type (\code{"linear"}, \code{"logit"} or
+#'     \code{"cox"}).}
+#'   \item{intercept}{The intercept(s) of the fitted model.}
+#'   \item{X.transform}{A list with components \code{X.means} and
+#'     \code{X.scale} used to standardize new data for prediction.}
+#'
+#' @references Simon, N., Friedman, J., Hastie, T., and Tibshirani, R. (2011)
+#'   \emph{A Sparse-Group Lasso}, Journal of Computational and Graphical
+#'   Statistics, 22(2), 231--245.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 50; p <- 100; size.groups <- 10
+#' index <- ceiling(1:p / size.groups)
+#' X <- matrix(rnorm(n * p), ncol = p, nrow = n)
+#' beta <- (-2:2)
+#' y <- X[, 1:5] %*% beta + 0.1 * rnorm(n)
+#' data <- list(x = X, y = y)
+#' fit <- SGL(data, index, type = "linear")
+#' print(fit)
 #'
 #' @export
 SGL <- function(
@@ -186,6 +247,15 @@ SGL <- function(
   X_fit <- transformed$x
   X_transform <- transformed$X.transform
 
+  X.transform <- list(
+    X.means = X_transform[, 1L],
+    X.scale = if (isTRUE(standardize)) {
+      X_transform[, 2L]
+    } else {
+      1
+    }
+  )
+
   if (identical(type, "linear")) {
     if (
       is.null(data$y) ||
@@ -317,7 +387,7 @@ SGL <- function(
       lambdas = lambda_path,
       type = "linear",
       intercept = mean(y),
-      X.transform = X_transform
+      X.transform = X.transform
     )
   } else if (identical(type, "logit")) {
     if (
@@ -455,7 +525,7 @@ SGL <- function(
       lambdas = lambda_path,
       type = "logit",
       intercept = intercept_path,
-      X.transform = X_transform
+      X.transform = X.transform
     )
   } else {
     if (is.null(data$y)) {
@@ -566,7 +636,7 @@ SGL <- function(
       beta = beta_path,
       lambdas = lambda_path,
       type = "cox",
-      X.transform = X_transform
+      X.transform = X.transform
     )
   }
 

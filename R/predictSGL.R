@@ -1,3 +1,32 @@
+#' Predict responses from a fitted SGL model
+#'
+#' Outputs predicted response values for new user input observations at a
+#' specified \code{lambda} value.
+#'
+#' @param x A fitted \code{"SGL"} object.
+#' @param newX A covariate matrix or vector for the new observations whose
+#'   responses we wish to predict.
+#' @param lam The index of the lambda value for the model with which we
+#'   desire to predict.
+#'
+#' @return A vector of predicted responses: the linear predictor for
+#'   \code{type = "linear"}, fitted probabilities for \code{type = "logit"}
+#'   and the relative risk \code{exp(eta)} for \code{type = "cox"}.
+#'
+#' @seealso \code{\link{SGL}}
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 50; p <- 100; size.groups <- 10
+#' index <- ceiling(1:p / size.groups)
+#' X <- matrix(rnorm(n * p), ncol = p, nrow = n)
+#' beta <- (-2:2)
+#' y <- X[, 1:5] %*% beta + 0.1 * rnorm(n)
+#' data <- list(x = X, y = y)
+#' fit <- SGL(data, index, type = "linear")
+#' X.new <- matrix(rnorm(n * p), ncol = p, nrow = n)
+#' pred <- predictSGL(fit, X.new, 5)
+#'
 #' @export
 predictSGL <- function(x, newX, lam) {
   cvobj <- x

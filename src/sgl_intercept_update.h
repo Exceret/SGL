@@ -1,5 +1,5 @@
-#ifndef SGL_INTERCEPT_UPDATE_HPP
-#define SGL_INTERCEPT_UPDATE_HPP
+#ifndef SGL_INTERCEPT_UPDATE_H
+#define SGL_INTERCEPT_UPDATE_H
 
 #include <RcppArmadillo.h>
 #include <cmath>

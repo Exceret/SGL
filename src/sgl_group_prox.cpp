@@ -2,7 +2,7 @@
 #include <cmath>
 #include <vector>
 
-#include "sgl_group_prox.hpp"
+#include "sgl_group_prox.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
