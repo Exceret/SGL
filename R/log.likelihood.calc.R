@@ -1,16 +1,15 @@
-log.likelihood.calc <-
-function(X, beta, death.times, ordered.time){
-  log.likeli <- 0
-  
-  for(i in 1:length(death.times)){
-    
-    numer.ind <- which(ordered.time == death.times[i])
-    denom.ind <- which(ordered.time >= death.times[i])
-    numer <- sum(X[numer.ind,] %*% beta)
-    denom <- (sum(exp(X[denom.ind,] %*% beta)))^length(numer.ind)
-
-    log.likeli <- log.likeli + numer - log(denom)
-  }
-  return(-log.likeli)
+#' @export
+log.likelihood.calc <- function(X, beta, death.times, ordered.time) {
+  eta <- drop(X %*% beta)
+  ## match ordered.time to death.times (NA for censor-only times)
+  mt <- match(ordered.time, death.times)
+  ## number of observations at each death time (tabulate ignores NA)
+  nd <- tabulate(mt, nbins = length(death.times))
+  ## sum of eta over the block at each death time
+  numer <- tapply(eta, mt, sum)
+  ## risk set = suffix starting at the first occurrence of each death time
+  rs.start <- match(death.times, ordered.time)
+  suff <- rev(cumsum(rev(exp(eta))))
+  denom <- suff[rs.start]^nd
+  return(-sum(numer - log(denom)))
 }
-
