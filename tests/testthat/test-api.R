@@ -43,9 +43,27 @@ make_sgl_test_data <- function(
       sd = 0.5
     )
 
+  beta_logit <- matrix(
+    0,
+    nrow = p,
+    ncol = 1L
+  )
+
+  active_logit <- seq_len(
+    min(4L, p)
+  )
+
+  beta_logit[active_logit, 1L] <-
+    c(0.25, -0.20, 0.15, -0.10)[
+      seq_along(active_logit)
+    ]
+
+  eta_logit <- as.numeric(
+    X %*% beta_logit
+  )
+
   probability <- plogis(
-    -0.25 +
-      0.5 * linear_predictor
+    -0.10 + eta_logit
   )
 
   y_logit <- rbinom(
@@ -53,6 +71,17 @@ make_sgl_test_data <- function(
     size = 1L,
     prob = probability
   )
+
+  if (
+    sum(y_logit) == 0L ||
+      sum(y_logit) == n
+  ) {
+    y_logit <- rbinom(
+      n,
+      size = 1L,
+      prob = 0.5
+    )
+  }
 
   time <- rexp(
     n,
@@ -109,7 +138,8 @@ test_that("SGL dispatches all supported model types", {
     type = "logit",
     lambdas = c(0.1, 0.05),
     maxit = 800L,
-    thresh = 1e-6
+    thresh = 1e-6,
+    step = 0.05
   )
 
   cox_fit <- SGL(
@@ -172,7 +202,8 @@ test_that("SGL dispatches all supported model types", {
     type = "logit",
     lambdas = c(0.1, 0.05),
     maxit = 800L,
-    thresh = 1e-6
+    thresh = 1e-6,
+    step = 0.01
   )
 
   cox_fit_raw <- SGL::SGL(

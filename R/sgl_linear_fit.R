@@ -1,14 +1,3 @@
-#' Fit a linear sparse-group lasso model.
-#'
-#' The optimized objective is:
-#'
-#'   1 / (2n) * ||y - intercept - X %*% beta||^2 +
-#'   lambda * (
-#'     alpha * ||beta||_1 +
-#'     (1 - alpha) * sum_g w_g ||beta_g||_2
-#'   )
-#'
-#' @export
 sgl_linear_fit <- function(
   X,
   y,

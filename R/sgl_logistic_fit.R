@@ -1,6 +1,3 @@
-#' Fit a Logistic sparse-group lasso model.
-#'
-#' @export
 sgl_logistic_fit <- function(
   X,
   y,

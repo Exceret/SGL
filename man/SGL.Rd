@@ -22,33 +22,34 @@ SGL(
 )
 }
 \arguments{
-\item{data}{A list containing the data.}
+\item{data}{For \code{type="linear"} should be a list with $x$ an input matrix of dimension n-obs by p-vars, and $y$ a length $n$ response vector. For \code{type="logit"} should be a list with $x$, an input matrix, as before, and $y$ a length $n$ binary response vector. For \code{type="cox"} should be a list with x as before, \code{time}, an n-vector corresponding to failure/censor times, and \code{status}, an n-vector indicating failure (1) or censoring (0). 
+}
 
-\item{index}{A numeric vector containing the group labels.}
+\item{index}{A p-vector indicating group membership of each covariate}
 
-\item{type}{The type of model to fit.}
+\item{type}{model type: one of ("linear","logit", "cox")}
 
-\item{maxit}{The maximum number of iterations.}
+\item{maxit}{Maximum number of iterations to convergence}
 
-\item{thresh}{The convergence threshold.}
+\item{thresh}{Convergence threshold for change in beta}
 
-\item{min.frac}{The minimum fraction of non-zero coefficients.}
+\item{min.frac}{The minimum value of the penalty parameter, as a fraction of the maximum value}
 
-\item{nlam}{The number of lambda values to try.}
+\item{nlam}{Number of lambda to use in the regularization path}
 
-\item{gamma}{The gamma value.}
+\item{gamma}{Fitting parameter used for tuning backtracking (between 0 and 1)}
 
-\item{standardize}{Whether to standardize the data.}
+\item{standardize}{Logical flag for variable standardization prior to fitting the model.}
 
-\item{verbose}{Whether to print progress messages.}
+\item{verbose}{Logical flag for whether or not step number will be output}
 
-\item{step}{The step size.}
+\item{step}{Fitting parameter used for inital backtracking step size (between 0 and 1)}
 
-\item{reset}{The number of iterations between resets.}
+\item{reset}{Fitting parameter used for taking advantage of local strong convexity in nesterov momentum (number of iterations before momentum term is reset)}
 
-\item{alpha}{The alpha value.}
+\item{alpha}{The mixing parameter. \code{alpha} = 1 is the lasso penalty. \code{alpha} = 0 is the group lasso penalty.}
 
-\item{lambdas}{The lambda values to try.}
+\item{lambdas}{A user specified sequence of lambda values for fitting. We recommend leaving this NULL and letting SGL self-select values}
 }
 \description{
 Fit a sparse-group lasso model.

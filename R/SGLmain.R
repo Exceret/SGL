@@ -1,19 +1,6 @@
 #' Fit a sparse-group lasso model.
 #'
-#' @param data A list containing the data.
-#' @param index A numeric vector containing the group labels.
-#' @param type The type of model to fit.
-#' @param maxit The maximum number of iterations.
-#' @param thresh The convergence threshold.
-#' @param min.frac The minimum fraction of non-zero coefficients.
-#' @param nlam The number of lambda values to try.
-#' @param gamma The gamma value.
-#' @param standardize Whether to standardize the data.
-#' @param verbose Whether to print progress messages.
-#' @param step The step size.
-#' @param reset The number of iterations between resets.
-#' @param alpha The alpha value.
-#' @param lambdas The lambda values to try.
+#' @inheritParams SGL::SGL
 #'
 #' @export
 SGL <- function(

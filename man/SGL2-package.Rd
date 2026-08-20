@@ -8,4 +8,17 @@
 \description{
 Fit a regularized generalized linear model via penalized maximum likelihood. The model is fit for a path of values of the penalty parameter. Fits linear, logistic and Cox models.
 }
+\author{
+\strong{Maintainer}: Yuxi Yang \email{15364051195@163.com}
+
+Authors:
+\itemize{
+  \item Yuxi Yang \email{15364051195@163.com}
+  \item Noah Simon
+  \item Jerome Friedman
+  \item Trevor Hastie
+  \item Rob Tibshirani
+}
+
+}
 \keyword{internal}

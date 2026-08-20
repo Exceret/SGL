@@ -14,5 +14,5 @@ plot.cv.SGL <- function(x, ...) {
   )
   do.call("plot", plot.args)
   error.bars(log(cvobj$lambdas), cvUp, cvDn, width = 0.01, col = "darkgrey")
-  points(log(cvobj$lambdas), cvobj$lldiff, pch = 20, col = "red")
+  graphics::points(log(cvobj$lambdas), cvobj$lldiff, pch = 20, col = "red")
 }

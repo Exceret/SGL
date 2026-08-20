@@ -1,9 +1,3 @@
-#' Fit a Cox sparse-group lasso model.
-#'
-#' Cox uses the Breslow approximation for tied event times.
-#' No ordinary intercept is fitted.
-#'
-#' @export
 sgl_cox_fit <- function(
   X,
   time,
