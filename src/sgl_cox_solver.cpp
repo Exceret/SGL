@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "sgl_cox_solver.h"
-
+#include "sgl_fista.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
 namespace
@@ -502,6 +502,12 @@ Rcpp::List sgl_cox_fit_cpp(
         1,
         arma::fill::none
     );
+    arma::mat beta_extrapolated =
+        beta;
+    arma::mat eta_extrapolated =
+        eta;
+    double fista_t =
+        1.0;
     const double lambda_l1 =
         step_size * lambda * alpha;
     const double lambda_group =
@@ -514,34 +520,61 @@ Rcpp::List sgl_cox_fit_cpp(
             iter < max_iter;
             ++iter)
     {
+        /*
+         * Cox 梯度在 extrapolated eta 上计算。
+         */
         sgl::cox_breslow_gradient_objective_inplace(
             gradient,
             X,
-            eta,
+            eta_extrapolated,
             status,
             risk_layout,
             false
         );
+        /*
+         * proximal 更新 extrapolated 状态。
+         */
+        sgl::sparse_group_proximal_gradient_update_eta_inplace(
+            beta_extrapolated,
+            eta_extrapolated,
+            X,
+            gradient,
+            group_layout,
+            group_weight,
+            step_size,
+            lambda_l1,
+            lambda_group
+        );
+        const double fista_t_next =
+            sgl::fista_next_t(
+                fista_t
+            );
+        const double coefficient =
+            (fista_t - 1.0) /
+            fista_t_next;
+        /*
+         * 提交新的 beta/eta，
+         * 同时计算下一轮 extrapolated 状态。
+         */
         const double beta_change =
-            sgl::sparse_group_proximal_gradient_update_eta_inplace(
+            sgl::fista_commit_and_extrapolate_inplace(
                 beta,
+                beta_extrapolated,
                 eta,
-                X,
-                gradient,
-                group_layout,
-                group_weight,
-                step_size,
-                lambda_l1,
-                lambda_group
+                eta_extrapolated,
+                coefficient
             );
         const double scale =
             1.0 +
             max_abs_matrix(beta);
+        fista_t =
+            fista_t_next;
         iterations =
             iter + 1;
         if (beta_change <= tol * scale)
         {
-            converged = true;
+            converged =
+                true;
             break;
         }
     }
@@ -601,6 +634,294 @@ Rcpp::List sgl_cox_fit_cpp(
                    copy_arma_matrix(risk_score),
                Rcpp::_["objective"] =
                    objective,
+               Rcpp::_["iterations"] =
+                   iterations,
+               Rcpp::_["converged"] =
+                   converged
+           );
+}
+
+// [[Rcpp::export]]
+Rcpp::List sgl_cox_path_cpp(
+    const arma::mat& X,
+    const arma::mat& time,
+    const arma::mat& status,
+    const arma::mat& group_index,
+    const arma::mat& group_weight,
+    const arma::mat& initial_beta,
+    const Rcpp::NumericVector& lambda_path,
+    const double alpha,
+    const double step_size,
+    const int max_iter,
+    const double tol
+)
+{
+    if (!X.is_finite())
+    {
+        Rcpp::stop(
+            "X must contain only finite values."
+        );
+    }
+    check_column_matrix(
+        time,
+        "time"
+    );
+    check_column_matrix(
+        status,
+        "status"
+    );
+    check_column_matrix(
+        initial_beta,
+        "initial_beta"
+    );
+    if (X.n_rows == 0 ||
+            X.n_cols == 0)
+    {
+        Rcpp::stop(
+            "X must contain at least one row and "
+            "one column."
+        );
+    }
+    if (time.n_rows != X.n_rows ||
+            status.n_rows != X.n_rows)
+    {
+        Rcpp::stop(
+            "time and status must have nrow(X) rows."
+        );
+    }
+    if (initial_beta.n_rows != X.n_cols)
+    {
+        Rcpp::stop(
+            "nrow(initial_beta) must equal ncol(X)."
+        );
+    }
+    check_binary_status(status);
+    check_unit_interval(
+        alpha,
+        "alpha"
+    );
+    check_positive_scalar(
+        step_size,
+        "step_size"
+    );
+    if (max_iter <= 0)
+    {
+        Rcpp::stop(
+            "max_iter must be positive."
+        );
+    }
+    check_positive_scalar(
+        tol,
+        "tol"
+    );
+    const R_xlen_t n_lambda_r =
+        lambda_path.size();
+    if (n_lambda_r == 0)
+    {
+        Rcpp::stop(
+            "lambda_path must contain at least "
+            "one value."
+        );
+    }
+    const arma::uword n_lambda =
+        static_cast<arma::uword>(
+            n_lambda_r
+        );
+    for (arma::uword lambda_index = 0;
+            lambda_index < n_lambda;
+            ++lambda_index)
+    {
+        check_nonnegative_finite(
+            lambda_path[lambda_index],
+            "lambda_path"
+        );
+    }
+    /*
+     * 关键优化 1：
+     * 整条 lambda path 只构造一次 GroupLayout。
+     */
+    const sgl::GroupLayout group_layout =
+        build_group_layout(
+            group_index
+        );
+    validate_group_weight(
+        group_weight,
+        group_layout.offsets.n_elem - 1
+    );
+    /*
+     * 关键优化 2：
+     * time/status 不变，因此 CoxRiskLayout
+     * 只构造一次。
+     */
+    const sgl::CoxRiskLayout risk_layout =
+        build_cox_risk_layout(
+            time,
+            status
+        );
+    /*
+     * 按 lambda 从大到小计算，
+     * 保留 warm start。
+     */
+    std::vector<arma::uword> calculation_order(
+        n_lambda
+    );
+    for (arma::uword lambda_index = 0;
+            lambda_index < n_lambda;
+            ++lambda_index)
+    {
+        calculation_order[lambda_index] =
+            lambda_index;
+    }
+    std::stable_sort(
+        calculation_order.begin(),
+        calculation_order.end(),
+        [&lambda_path](
+            const arma::uword a,
+            const arma::uword b
+        )
+    {
+        return lambda_path[a] >
+               lambda_path[b];
+    }
+    );
+    arma::mat beta =
+        initial_beta;
+    arma::mat eta(
+        X.n_rows,
+        1,
+        arma::fill::none
+    );
+    sgl::initialize_cox_eta_inplace(
+        eta,
+        X,
+        beta
+    );
+    arma::mat gradient(
+        X.n_cols,
+        1,
+        arma::fill::none
+    );
+    arma::mat beta_path(
+        X.n_cols,
+        n_lambda,
+        arma::fill::zeros
+    );
+    Rcpp::IntegerVector iterations(
+        n_lambda
+    );
+    Rcpp::LogicalVector converged(
+        n_lambda
+    );
+    arma::mat beta_extrapolated =
+        beta;
+    arma::mat eta_extrapolated =
+        eta;
+    double fista_t =
+        1.0;
+    for (arma::uword position = 0;
+            position < n_lambda;
+            ++position)
+    {
+        const arma::uword lambda_index =
+            calculation_order[position];
+        const double lambda =
+            lambda_path[lambda_index];
+        const double lambda_l1 =
+            step_size *
+            lambda *
+            alpha;
+        const double lambda_group =
+            step_size *
+            lambda *
+            (1.0 - alpha);
+        /*
+         * 新 lambda 使用上一个 lambda 的 beta
+         * 作为 warm start，但不继承上一个 lambda
+         * 的 FISTA 动量。
+         */
+        beta_extrapolated =
+            beta;
+        eta_extrapolated =
+            eta;
+        fista_t =
+            1.0;
+        bool lambda_converged =
+            false;
+        int lambda_iterations =
+            0;
+        for (int iter = 0;
+                iter < max_iter;
+                ++iter)
+        {
+            /*
+             * 梯度在 extrapolated 状态上计算。
+             */
+            sgl::cox_breslow_gradient_objective_inplace(
+                gradient,
+                X,
+                eta_extrapolated,
+                status,
+                risk_layout,
+                false
+            );
+            /*
+             * proximal 更新也作用于
+             * extrapolated 状态。
+             */
+            sgl::sparse_group_proximal_gradient_update_eta_inplace(
+                beta_extrapolated,
+                eta_extrapolated,
+                X,
+                gradient,
+                group_layout,
+                group_weight,
+                step_size,
+                lambda_l1,
+                lambda_group
+            );
+            const double fista_t_next =
+                sgl::fista_next_t(
+                    fista_t
+                );
+            const double coefficient =
+                (fista_t - 1.0) /
+                fista_t_next;
+            /*
+             * 提交 proximal 结果到 beta/eta，
+             * 并生成下一轮 extrapolated 状态。
+             */
+            const double beta_change =
+                sgl::fista_commit_and_extrapolate_inplace(
+                    beta,
+                    beta_extrapolated,
+                    eta,
+                    eta_extrapolated,
+                    coefficient
+                );
+            fista_t =
+                fista_t_next;
+            const double scale =
+                1.0 +
+                max_abs_matrix(beta);
+            lambda_iterations =
+                iter + 1;
+            if (beta_change <= tol * scale)
+            {
+                lambda_converged =
+                    true;
+                break;
+            }
+        }
+        beta_path.col(lambda_index) =
+                     beta;
+        iterations[lambda_index] =
+            lambda_iterations;
+        converged[lambda_index] =
+            lambda_converged;
+    }
+    return Rcpp::List::create(
+               Rcpp::_["beta_path"] =
+                   copy_arma_matrix(beta_path),
                Rcpp::_["iterations"] =
                    iterations,
                Rcpp::_["converged"] =

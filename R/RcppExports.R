@@ -25,6 +25,10 @@ sgl_cox_fit_cpp <- function(X, time, status, group_index, group_weight, initial_
     .Call(`_SGL2_sgl_cox_fit_cpp`, X, time, status, group_index, group_weight, initial_beta, lambda, alpha, step_size, max_iter, tol)
 }
 
+sgl_cox_path_cpp <- function(X, time, status, group_index, group_weight, initial_beta, lambda_path, alpha, step_size, max_iter, tol) {
+    .Call(`_SGL2_sgl_cox_path_cpp`, X, time, status, group_index, group_weight, initial_beta, lambda_path, alpha, step_size, max_iter, tol)
+}
+
 sgl_group_l2_norm_cpp <- function(z) {
     .Call(`_SGL2_sgl_group_l2_norm_cpp`, z)
 }
@@ -99,6 +103,10 @@ sgl_linear_fit_cpp <- function(X, y, group_index, group_weight, initial_beta, in
 
 sgl_logistic_fit_cpp <- function(X, y, group_index, group_weight, initial_beta, initial_intercept, lambda, alpha, step_size, max_iter, tol, fit_intercept) {
     .Call(`_SGL2_sgl_logistic_fit_cpp`, X, y, group_index, group_weight, initial_beta, initial_intercept, lambda, alpha, step_size, max_iter, tol, fit_intercept)
+}
+
+sgl_logistic_path_cpp <- function(X, y, group_index, group_weight, initial_beta, initial_intercept, lambda_path, alpha, step_size, max_iter, tol, fit_intercept) {
+    .Call(`_SGL2_sgl_logistic_path_cpp`, X, y, group_index, group_weight, initial_beta, initial_intercept, lambda_path, alpha, step_size, max_iter, tol, fit_intercept)
 }
 
 sgl_logistic_probability_cpp <- function(eta) {

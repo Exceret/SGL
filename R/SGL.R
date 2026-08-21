@@ -446,80 +446,58 @@ SGL <- function(
 
     step_size <- step / (1 + 0.25 * sum(X_fit * X_fit) / n)
 
+    n_lambda <- length(lambda_path)
+
     calculation_order <- order(
       lambda_path,
       decreasing = TRUE,
       method = "radix"
     )
 
-    n_lambda <- length(lambda_path)
-
-    beta_path <- matrix(
-      0,
-      nrow = p,
-      ncol = n_lambda
+    path_fit <- sgl_logistic_path_cpp(
+      X = X_fit,
+      y = y_matrix,
+      group_index = group_index,
+      group_weight = group_weight,
+      initial_beta = matrix(
+        0,
+        nrow = p,
+        ncol = 1L
+      ),
+      initial_intercept = matrix(
+        initial_intercept,
+        nrow = 1L,
+        ncol = 1L
+      ),
+      lambda_path = lambda_path,
+      alpha = as.numeric(alpha),
+      step_size = as.numeric(step_size),
+      max_iter = as.integer(maxit),
+      tol = as.numeric(thresh),
+      fit_intercept = TRUE
     )
 
-    intercept_path <- numeric(n_lambda)
+    beta_path <- path_fit$beta_path
 
-    fits <- vector(
-      mode = "list",
-      length = n_lambda
-    )
+    intercept_path <- path_fit$intercept_path
 
-    beta_start <- matrix(
-      0,
-      nrow = p,
-      ncol = 1L
-    )
+    if (isTRUE(verbose)) {
+      for (position in seq_along(calculation_order)) {
+        lambda_index <-
+          calculation_order[position]
 
-    intercept_start <- matrix(
-      initial_intercept,
-      nrow = 1L,
-      ncol = 1L
-    )
-
-    for (position in seq_along(calculation_order)) {
-      lambda_index <- calculation_order[position]
-
-      fit <- sgl_logistic_fit(
-        X = X_fit,
-        y = y_matrix,
-        group_index = group_index,
-        group_weight = group_weight,
-        lambda = lambda_path[lambda_index],
-        alpha = alpha,
-        step_size = step_size,
-        max_iter = as.integer(maxit),
-        tol = thresh,
-        fit_intercept = TRUE,
-        initial_beta = beta_start,
-        initial_intercept = intercept_start
-      )
-
-      fits[[lambda_index]] <- fit
-
-      beta_path[, lambda_index] <- fit$beta[, 1L]
-
-      intercept_path[lambda_index] <- fit$intercept[1L, 1L]
-
-      beta_start <- fit$beta
-      intercept_start <- fit$intercept
-
-      if (isTRUE(verbose)) {
         message(
           "logit lambda[",
           lambda_index,
           "] = ",
           format(lambda_path[lambda_index]),
           ", iterations = ",
-          fit$iterations,
+          path_fit$iterations[lambda_index],
           ", converged = ",
-          fit$converged
+          path_fit$converged[lambda_index]
         )
       }
     }
-
     result <- list(
       beta = beta_path,
       lambdas = lambda_path,
@@ -578,56 +556,47 @@ SGL <- function(
 
     n_lambda <- length(lambda_path)
 
-    beta_path <- matrix(
-      0,
-      nrow = p,
-      ncol = n_lambda
+    path_fit <- sgl_cox_path_cpp(
+      X = X_fit,
+      time = matrix(
+        time,
+        ncol = 1L
+      ),
+      status = matrix(
+        status,
+        ncol = 1L
+      ),
+      group_index = group_index,
+      group_weight = group_weight,
+      initial_beta = matrix(
+        0,
+        nrow = p,
+        ncol = 1L
+      ),
+      lambda_path = as.numeric(lambda_path),
+      alpha = as.numeric(alpha),
+      step_size = as.numeric(step_size),
+      max_iter = as.integer(maxit),
+      tol = as.numeric(thresh)
     )
 
-    fits <- vector(
-      mode = "list",
-      length = n_lambda
-    )
+    beta_path <-
+      path_fit$beta_path
 
-    beta_start <- matrix(
-      0,
-      nrow = p,
-      ncol = 1L
-    )
+    if (isTRUE(verbose)) {
+      for (position in seq_along(calculation_order)) {
+        lambda_index <-
+          calculation_order[position]
 
-    for (position in seq_along(calculation_order)) {
-      lambda_index <- calculation_order[position]
-
-      fit <- sgl_cox_fit(
-        X = X_fit,
-        time = matrix(time, ncol = 1L),
-        status = matrix(status, ncol = 1L),
-        group_index = group_index,
-        group_weight = group_weight,
-        lambda = lambda_path[lambda_index],
-        alpha = alpha,
-        step_size = step_size,
-        max_iter = as.integer(maxit),
-        tol = thresh,
-        initial_beta = beta_start
-      )
-
-      fits[[lambda_index]] <- fit
-
-      beta_path[, lambda_index] <- fit$beta[, 1L]
-
-      beta_start <- fit$beta
-
-      if (isTRUE(verbose)) {
         message(
           "cox lambda[",
           lambda_index,
           "] = ",
           format(lambda_path[lambda_index]),
           ", iterations = ",
-          fit$iterations,
+          path_fit$iterations[lambda_index],
           ", converged = ",
-          fit$converged
+          path_fit$converged[lambda_index]
         )
       }
     }

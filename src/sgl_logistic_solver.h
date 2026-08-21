@@ -25,31 +25,24 @@ namespace sgl
     ) noexcept
     {
         const arma::uword n = X.n_rows;
-        const arma::uword p = X.n_cols;
-        double *gradient_ptr =
-            gradient.memptr();
         const double *eta_ptr =
             eta.memptr();
         const double *y_ptr =
             y.memptr();
-        for (arma::uword j = 0; j < p; ++j)
+        arma::vec residual(n);
+        for (arma::uword i = 0; i < n; ++i)
         {
-            const double *x_ptr =
-                X.colptr(j);
-            double value = 0.0;
-            for (arma::uword i = 0; i < n; ++i)
-            {
-                const double probability =
-                    stable_logistic_probability(
-                        eta_ptr[i]
-                    );
-                value +=
-                    x_ptr[i] *
-                    (probability - y_ptr[i]);
-            }
-            gradient_ptr[j] =
-                value / static_cast<double>(n);
+            residual[i] =
+                stable_logistic_probability(
+                    eta_ptr[i]
+                ) - y_ptr[i];
         }
+        const double inverse_n =
+            1.0 / static_cast<double>(n);
+        // gradient = X.t() * residual / n
+        gradient =
+            X.t() * residual;
+        gradient *= inverse_n;
     }
 
 

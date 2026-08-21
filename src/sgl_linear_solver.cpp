@@ -8,6 +8,7 @@
 #include "sgl_linear_gradient.h"
 #include "sgl_linear_predictor.h"
 #include "sgl_linear_solver.h"
+#include "sgl_fista.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -402,8 +403,14 @@ Rcpp::List sgl_linear_fit_cpp(
         1,
         arma::fill::none
     );
-    const double n_double =
-        static_cast<double>(X.n_rows);
+    arma::mat beta_extrapolated =
+        beta;
+    arma::mat intercept_extrapolated =
+        intercept;
+    arma::mat eta_extrapolated =
+        eta;
+    double fista_t =
+        1.0;
     const double lambda_l1 =
         step_size * lambda * alpha;
     const double lambda_group =
@@ -414,31 +421,39 @@ Rcpp::List sgl_linear_fit_cpp(
             iter < max_iter;
             ++iter)
     {
+        /*
+         * 在 extrapolated eta 上计算梯度。
+         */
         sgl::linear_gradient(
             gradient,
             X,
-            eta,
+            eta_extrapolated,
             y
         );
         const double inverse_n =
-            1.0 / n_double;
+            1.0 /
+            static_cast<double>(
+                X.n_rows
+            );
         double *gradient_ptr =
             gradient.memptr();
         for (arma::uword j = 0;
-                j < gradient.n_rows;
+                j < gradient.n_elem;
                 ++j)
         {
-            gradient_ptr[j] *= inverse_n;
+            gradient_ptr[j] *=
+                inverse_n;
         }
-        double intercept_gradient = 0.0;
+        double intercept_gradient =
+            0.0;
         if (fit_intercept)
         {
             const double *eta_ptr =
-                eta.memptr();
+                eta_extrapolated.memptr();
             const double *y_ptr =
                 y.memptr();
             for (arma::uword i = 0;
-                    i < eta.n_rows;
+                    i < eta_extrapolated.n_rows;
                     ++i)
             {
                 intercept_gradient +=
@@ -447,36 +462,62 @@ Rcpp::List sgl_linear_fit_cpp(
             intercept_gradient *=
                 inverse_n;
         }
-        const double beta_change =
-            sgl::sparse_group_proximal_gradient_update_eta_inplace(
-                beta,
-                eta,
-                X,
-                gradient,
-                layout,
-                group_weight,
-                step_size,
-                lambda_l1,
-                lambda_group
-            );
-        double intercept_change = 0.0;
+        /*
+         * proximal 更新 extrapolated 状态。
+         */
+        sgl::sparse_group_proximal_gradient_update_eta_inplace(
+            beta_extrapolated,
+            eta_extrapolated,
+            X,
+            gradient,
+            layout,
+            group_weight,
+            step_size,
+            lambda_l1,
+            lambda_group
+        );
         if (fit_intercept)
         {
             const double delta_intercept =
-                -step_size * intercept_gradient;
-            intercept(0, 0) +=
+                -step_size *
+                intercept_gradient;
+            intercept_extrapolated(0, 0) +=
                 delta_intercept;
-            intercept_change =
-                std::abs(delta_intercept);
-            double *eta_ptr =
-                eta.memptr();
+            double *eta_extrapolated_ptr =
+                eta_extrapolated.memptr();
             for (arma::uword i = 0;
-                    i < eta.n_rows;
+                    i < eta_extrapolated.n_rows;
                     ++i)
             {
-                eta_ptr[i] +=
+                eta_extrapolated_ptr[i] +=
                     delta_intercept;
             }
+        }
+        const double fista_t_next =
+            sgl::fista_next_t(
+                fista_t
+            );
+        const double coefficient =
+            (fista_t - 1.0) /
+            fista_t_next;
+        const double beta_change =
+            sgl::fista_commit_and_extrapolate_inplace(
+                beta,
+                beta_extrapolated,
+                eta,
+                eta_extrapolated,
+                coefficient
+            );
+        double intercept_change =
+            0.0;
+        if (fit_intercept)
+        {
+            intercept_change =
+                sgl::fista_commit_scalar_and_extrapolate_inplace(
+                    intercept,
+                    intercept_extrapolated,
+                    coefficient
+                );
         }
         const double change =
             std::max(
@@ -486,11 +527,17 @@ Rcpp::List sgl_linear_fit_cpp(
         const double scale =
             1.0 +
             max_abs_matrix(beta) +
-            std::abs(intercept(0, 0));
-        iterations = iter + 1;
+            std::abs(
+                intercept(0, 0)
+            );
+        fista_t =
+            fista_t_next;
+        iterations =
+            iter + 1;
         if (change <= tol * scale)
         {
-            converged = true;
+            converged =
+                true;
             break;
         }
     }
