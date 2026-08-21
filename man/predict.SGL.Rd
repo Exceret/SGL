@@ -4,16 +4,18 @@
 \alias{predict.SGL}
 \title{Predict responses from a fitted SGL model}
 \usage{
-\method{predict}{SGL}(x, newX, lam)
+\method{predict}{SGL}(object, newX, lam, ...)
 }
 \arguments{
-\item{x}{A fitted \code{"SGL"} object.}
+\item{object}{A fitted \code{"SGL"} object.}
 
 \item{newX}{A covariate matrix or vector for the new observations whose
 responses we wish to predict.}
 
 \item{lam}{The index of the lambda value for the model with which we
 desire to predict.}
+
+\item{...}{Additional arguments are ignored.}
 }
 \value{
 A vector of predicted responses: the linear predictor for
@@ -34,7 +36,7 @@ y <- X[, 1:5] \%*\% beta + 0.1 * rnorm(n)
 data <- list(x = X, y = y)
 fit <- SGL(data, index, type = "linear")
 X.new <- matrix(rnorm(n * p), ncol = p, nrow = n)
-pred <- predict.SGL(fit, X.new, 5)
+pred <- predict(fit, X.new, 5)
 
 }
 \seealso{

@@ -2,7 +2,7 @@
 % Please edit documentation in R/sgl_cox_fit.R
 \name{sgl_cox_fit}
 \alias{sgl_cox_fit}
-\alias{printSGL_cox_fit}
+\alias{print.sgl_cox_fit}
 \title{Fit a Cox proportional hazards model with a sparse-group lasso penalty}
 \usage{
 sgl_cox_fit(X, time, status, group_index, lambda, alpha = 1,

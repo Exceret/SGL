@@ -3,11 +3,12 @@
 #' Outputs predicted response values for new user input observations at a
 #' specified \code{lambda} value.
 #'
-#' @param x A fitted \code{"SGL"} object.
+#' @param object A fitted \code{"SGL"} object.
 #' @param newX A covariate matrix or vector for the new observations whose
 #'   responses we wish to predict.
 #' @param lam The index of the lambda value for the model with which we
 #'   desire to predict.
+#' @param ... Additional arguments are ignored.
 #'
 #' @return A vector of predicted responses: the linear predictor for
 #'   \code{type = "linear"}, fitted probabilities for \code{type = "logit"}
@@ -25,52 +26,52 @@
 #' data <- list(x = X, y = y)
 #' fit <- SGL(data, index, type = "linear")
 #' X.new <- matrix(rnorm(n * p), ncol = p, nrow = n)
-#' pred <- predictSGL(fit, X.new, 5)
+#' pred <- predict(fit, X.new, 5)
 #'
 #' @export
-predictSGL <- function(x, newX, lam) {
-  cvobj <- x
+predict.SGL <- function(object, newX, lam, ...) {
+  cvobj <- object
 
   X <- newX
 
   if (is.matrix(X)) {
-    X <- t(t(newX) - x$X.transform$X.means)
-    if (!is.null(x$X.transform$X.scale)) {
-      X <- t(t(X) / x$X.transform$X.scale)
+    X <- t(t(newX) - object$X.transform$X.means)
+    if (!is.null(object$X.transform$X.scale)) {
+      X <- t(t(X) / object$X.transform$X.scale)
     }
   }
   if (is.vector(X)) {
-    X <- X - x$X.transform$X.means
-    if (!is.null(x$X.transform$X.scale)) {
-      X <- X / x$X.transform$X.scale
+    X <- X - object$X.transform$X.means
+    if (!is.null(object$X.transform$X.scale)) {
+      X <- X / object$X.transform$X.scale
     }
   }
 
   intercept <- 0
 
-  if (x$type == "linear") {
-    intercept <- x$intercept
+  if (object$type == "linear") {
+    intercept <- object$intercept
   }
-  if (x$type == "logit") {
-    intercept <- x$intercept[lam]
+  if (object$type == "logit") {
+    intercept <- object$intercept[lam]
   }
 
   if (is.matrix(X)) {
-    eta <- X %*% x$beta[, lam] + intercept
+    eta <- X %*% object$beta[, lam] + intercept
   }
   if (is.vector(X)) {
-    eta <- sum(X * x$beta[, lam]) + intercept
+    eta <- sum(X * object$beta[, lam]) + intercept
   }
 
-  if (x$type == "linear") {
+  if (object$type == "linear") {
     y.pred <- eta
   }
 
-  if (x$type == "logit") {
+  if (object$type == "logit") {
     y.pred <- exp(eta) / (1 + exp(eta))
   }
 
-  if (x$type == "cox") {
+  if (object$type == "cox") {
     y.pred <- exp(eta)
   }
 

@@ -279,7 +279,7 @@ sgl_cox_fit <- function(
 #' @export
 #' @method print sgl_cox_fit
 #' @rdname sgl_cox_fit
-printSGL_cox_fit <- function(x, ...) {
+print.sgl_cox_fit <- function(x, ...) {
   message("Cox sparse-group lasso fit\n")
   message("Ties method: Breslow\n")
   message("Objective:", format(x$objective), "\n")

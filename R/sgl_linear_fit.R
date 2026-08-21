@@ -248,7 +248,7 @@ sgl_linear_fit <- function(
 #' @export
 #' @method print sgl_linear_fit
 #' @rdname sgl_linear_fit
-printSGL_linear_fit <- function(x, ...) {
+print.sgl_linear_fit <- function(x, ...) {
   message("Linear sparse-group lasso fit\n")
   message("Objective:", format(x$objective), "\n")
   message("Iterations:", x$iterations, "\n")
