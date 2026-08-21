@@ -18,7 +18,8 @@ SGL(
   step = 1,
   reset = 10,
   alpha = 0.95,
-  lambdas = NULL
+  lambdas = NULL,
+  .preprocessed = FALSE
 )
 }
 \arguments{
@@ -65,6 +66,9 @@ term is reset).}
 \item{lambdas}{A user specified sequence of lambda values for fitting.  We
 recommend leaving this \code{NULL} and letting \code{SGL} self-select
 values.}
+
+\item{.preprocessed}{internal flag for whether or not the data has been
+preprocessed.}
 }
 \value{
 An object with S3 class \code{"SGL"}:

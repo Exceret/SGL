@@ -2,7 +2,7 @@
 % Please edit documentation in R/sgl_logistic_fit.R
 \name{sgl_logistic_fit}
 \alias{sgl_logistic_fit}
-\alias{print.sgl_logistic_fit}
+\alias{printSGL_logistic_fit}
 \title{Fit a logistic sparse-group lasso model}
 \usage{
 sgl_logistic_fit(X, y, group_index, lambda, alpha = 1,

@@ -57,7 +57,7 @@ cvSGL(
 \item{foldid}{Optional fold assignment vector.}
 }
 \value{
-An object of class \code{"cv.SGL"}.
+An object of class \code{"cvSGL"}.
 }
 \description{
 Fit and cross-validate a sparse-group lasso model

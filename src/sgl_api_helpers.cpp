@@ -158,6 +158,190 @@ namespace
         }
     }
 
+    inline double sparse_group_lambda_max_for_group(
+        std::vector<double> correlations,
+        const double alpha,
+        const double group_weight
+    )
+    {
+        if (correlations.empty())
+        {
+            return 0.0;
+        }
+        std::sort(
+            correlations.begin(),
+            correlations.end(),
+            std::greater<double>()
+        );
+        const std::size_t group_size =
+            correlations.size();
+        /*
+         * alpha = 1: lasso
+         */
+        if (alpha >= 1.0)
+        {
+            return correlations.front();
+        }
+        /*
+         * alpha = 0: group lasso
+         */
+        if (alpha <= 0.0)
+        {
+            if (group_weight <= 0.0)
+            {
+                return 0.0;
+            }
+            double squared_norm = 0.0;
+            for (const double value : correlations)
+            {
+                squared_norm += value * value;
+            }
+            return std::sqrt(squared_norm) /
+                   group_weight;
+        }
+        /*
+         * 如果 group penalty 权重为 0，
+         * 该组退化为 lasso。
+         */
+        if (group_weight <= 0.0)
+        {
+            return correlations.front() / alpha;
+        }
+        const double group_penalty =
+            (1.0 - alpha) * group_weight;
+        double lambda_group_max = 0.0;
+        double sum_correlations = 0.0;
+        double sum_squared_correlations = 0.0;
+        /*
+         * 假设当前有 k 个变量经过 lasso soft-threshold
+         * 后仍然处于 active 状态。
+         *
+         * 方程为：
+         *
+         *   sum_i (c_i - lambda * alpha)^2
+         *       =
+         *   lambda^2 * ((1-alpha) * w)^2
+         */
+        for (std::size_t k = 1;
+                k <= group_size;
+                ++k)
+        {
+            const double correlation =
+                correlations[k - 1];
+            sum_correlations +=
+                correlation;
+            sum_squared_correlations +=
+                correlation * correlation;
+            const double k_double =
+                static_cast<double>(k);
+            const double a =
+                k_double * alpha * alpha -
+                group_penalty * group_penalty;
+            const double b =
+                -2.0 * alpha *
+                sum_correlations;
+            const double c =
+                sum_squared_correlations;
+            /*
+             * active set 为前 k 个变量时，
+             * lambda 必须满足：
+             *
+             *   c[k] / alpha <= lambda <= c[k-1] / alpha
+             */
+            const double lower =
+                (k < group_size)
+                ? correlations[k] / alpha
+                : 0.0;
+            const double upper =
+                correlations[k - 1] / alpha;
+            const double interval_tolerance =
+                1e-10 *
+                std::max(
+                    1.0,
+                    upper
+                );
+            auto accept_root =
+                [&](const double root)
+            {
+                if (!std::isfinite(root) ||
+                        root < 0.0)
+                {
+                    return;
+                }
+                if (root >= lower - interval_tolerance &&
+                        root <= upper + interval_tolerance)
+                {
+                    lambda_group_max =
+                        std::max(
+                            lambda_group_max,
+                            root
+                        );
+                }
+            };
+            /*
+             * A 接近 0 时退化为一元一次方程。
+             */
+            const double coefficient_tolerance =
+                1e-14 *
+                std::max(
+                    1.0,
+                    std::max(
+                        std::abs(a),
+                        std::max(
+                            std::abs(b),
+                            std::abs(c)
+                        )
+                    )
+                );
+            if (std::abs(a) <= coefficient_tolerance)
+            {
+                if (std::abs(b) > coefficient_tolerance)
+                {
+                    accept_root(-c / b);
+                }
+                continue;
+            }
+            double discriminant =
+                b * b -
+                4.0 * a * c;
+            /*
+             * 允许极小的浮点误差。
+             */
+            const double discriminant_tolerance =
+                1e-12 *
+                std::max(
+                    1.0,
+                    std::max(
+                        b * b,
+                        std::abs(
+                            4.0 * a * c
+                        )
+                    )
+                );
+            if (discriminant < 0.0 &&
+                    discriminant >=
+                    -discriminant_tolerance)
+            {
+                discriminant = 0.0;
+            }
+            if (discriminant < 0.0)
+            {
+                continue;
+            }
+            const double sqrt_discriminant =
+                std::sqrt(discriminant);
+            accept_root(
+                (-b + sqrt_discriminant) /
+                (2.0 * a)
+            );
+            accept_root(
+                (-b - sqrt_discriminant) /
+                (2.0 * a)
+            );
+        }
+        return lambda_group_max;
+    }
+
 } // anonymous namespace
 
 
@@ -200,68 +384,45 @@ double sgl_lambda_max_from_gradient_cpp(
         group_weight,
         n_groups
     );
-    const arma::uword max_group =
-        groups.max();
-    if (n_groups != max_group)
+    if (n_groups != groups.max())
     {
         Rcpp::stop(
             "group_weight has an incompatible "
             "number of rows."
         );
     }
-    const double *gradient_ptr =
-        gradient.memptr();
-    const double *weight_ptr =
-        group_weight.memptr();
+    const double *gradient_ptr = gradient.memptr();
+    const double *weight_ptr = group_weight.memptr();
     double lambda_max = 0.0;
-    if (alpha > 0.0)
+    for (arma::uword g = 1;
+            g <= n_groups;
+            ++g)
     {
-        double max_abs_gradient = 0.0;
+        std::vector<double> correlations;
         for (arma::uword j = 0;
                 j < p;
                 ++j)
         {
-            max_abs_gradient =
-                std::max(
-                    max_abs_gradient,
-                    std::abs(gradient_ptr[j])
+            if (groups[j] == g)
+            {
+                correlations.push_back(
+                    std::abs(
+                        gradient_ptr[j]
+                    )
                 );
+            }
         }
+        const double group_lambda =
+            sparse_group_lambda_max_for_group(
+                correlations,
+                alpha,
+                weight_ptr[g - 1]
+            );
         lambda_max =
-            max_abs_gradient / alpha;
-    }
-    if (alpha < 1.0)
-    {
-        for (arma::uword g = 1;
-                g <= max_group;
-                ++g)
-        {
-            double squared_norm = 0.0;
-            for (arma::uword j = 0;
-                    j < p;
-                    ++j)
-            {
-                if (groups[j] == g)
-                {
-                    squared_norm +=
-                        gradient_ptr[j] *
-                        gradient_ptr[j];
-                }
-            }
-            const double weight =
-                weight_ptr[g - 1];
-            if (weight > 0.0)
-            {
-                const double group_value =
-                    std::sqrt(squared_norm) /
-                    ((1.0 - alpha) * weight);
-                lambda_max =
-                    std::max(
-                        lambda_max,
-                        group_value
-                    );
-            }
-        }
+            std::max(
+                lambda_max,
+                group_lambda
+            );
     }
     if (!std::isfinite(lambda_max) ||
             lambda_max <= 0.0)
@@ -292,7 +453,8 @@ Rcpp::NumericVector sgl_make_lambda_path_cpp(
             lambda_max < 0.0)
     {
         Rcpp::stop(
-            "lambda_max must be finite and non-negative."
+            "lambda_max must be finite and "
+            "non-negative."
         );
     }
     if (!std::isfinite(min_frac) ||
@@ -303,6 +465,10 @@ Rcpp::NumericVector sgl_make_lambda_path_cpp(
             "min_frac must be in (0, 1]."
         );
     }
+    /*
+     * 该参数只为兼容现有 Rcpp 接口保留。
+     * main/master 的 lambda path 不使用 gamma。
+     */
     if (!std::isfinite(lambda_decay) ||
             lambda_decay <= 0.0 ||
             lambda_decay >= 1.0)
@@ -335,7 +501,8 @@ Rcpp::NumericVector sgl_make_lambda_path_cpp(
             if (supplied[i] < 0.0)
             {
                 Rcpp::stop(
-                    "lambda_input must be non-negative."
+                    "lambda_input must be "
+                    "non-negative."
                 );
             }
         }
@@ -362,53 +529,32 @@ Rcpp::NumericVector sgl_make_lambda_path_cpp(
     Rcpp::NumericVector result(
         n_lambda
     );
+    const double log_max =
+        std::log(safe_lambda_max);
+    const double log_min =
+        std::log(lambda_min);
     /*
-     * 与原 R 实现一致：
+     * 与 main/master 一致：
      *
      *   lambda_max,
-     *   lambda_max * gamma,
-     *   lambda_max * gamma^2,
-     *   ...
+     *   ...,
+     *   lambda_max * min_frac
      *
-     * 如果 gamma 路径没有到达 lambda_min，
-     * 则改用完整的等比路径。
+     * gamma 不参与 lambda path。
      */
-    result[0] =
-        safe_lambda_max;
-    for (int i = 1;
+    for (int i = 0;
             i < n_lambda;
             ++i)
     {
+        const double fraction =
+            static_cast<double>(i) /
+            static_cast<double>(n_lambda - 1);
         result[i] =
-            safe_lambda_max *
-            std::pow(
-                lambda_decay,
-                static_cast<double>(i)
+            std::exp(
+                log_max +
+                fraction *
+                (log_min - log_max)
             );
-    }
-    if (result[n_lambda - 1] <
-            lambda_min)
-    {
-        const double log_max =
-            std::log(safe_lambda_max);
-        const double log_min =
-            std::log(lambda_min);
-        for (int i = 0;
-                i < n_lambda;
-                ++i)
-        {
-            const double fraction =
-                static_cast<double>(i) /
-                static_cast<double>(
-                    n_lambda - 1
-                );
-            result[i] =
-                std::exp(
-                    log_max +
-                    fraction *
-                    (log_min - log_max)
-                );
-        }
     }
     return result;
 }
@@ -653,9 +799,43 @@ Rcpp::NumericMatrix sgl_cox_zero_gradient_cpp(
             "status must contain at least one event."
         );
     }
+    double first_event_time =
+        std::numeric_limits<double>::infinity();
+    for (arma::uword i = 0;
+            i < n;
+            ++i)
+    {
+        if (status_ptr[i] == 1.0)
+        {
+            first_event_time =
+                std::min(
+                    first_event_time,
+                    time_ptr[i]
+                );
+        }
+    }
+    arma::uword n_active = 0;
+    for (arma::uword i = 0;
+            i < n;
+            ++i)
+    {
+        if (time_ptr[i] >= first_event_time)
+        {
+            ++n_active;
+        }
+    }
+    if (n_active == 0)
+    {
+        Rcpp::stop(
+            "Cox response must contain at least "
+            "one active observation."
+        );
+    }
     gradient /=
-        static_cast<double>(n_events);
-    return Rcpp::wrap(
-               gradient
-           );
+        static_cast<double>(
+            n_active
+        );    return Rcpp::wrap(
+                         gradient
+                     );
 }
+

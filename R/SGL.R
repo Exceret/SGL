@@ -37,6 +37,8 @@
 #' @param lambdas A user specified sequence of lambda values for fitting.  We
 #'   recommend leaving this \code{NULL} and letting \code{SGL} self-select
 #'   values.
+#' @param .preprocessed internal flag for whether or not the data has been
+#'   preprocessed.
 #'
 #' @return An object with S3 class \code{"SGL"}:
 #'   \item{beta}{A p by nlam matrix of coefficient estimates.}
@@ -78,7 +80,8 @@ SGL <- function(
   step = 1,
   reset = 10,
   alpha = 0.95,
-  lambdas = NULL
+  lambdas = NULL,
+  .preprocessed = FALSE
 ) {
   if (!(type %in% c("linear", "logit", "cox"))) {
     print(
@@ -242,19 +245,39 @@ SGL <- function(
 
   invisible(reset)
 
-  transformed <- sgl_center_scale_cpp(X, standardize)
+  if (
+    length(.preprocessed) != 1L ||
+      !is.logical(.preprocessed) ||
+      is.na(.preprocessed)
+  ) {
+    stop(".preprocessed must be one logical value.")
+  }
 
-  X_fit <- transformed$x
-  X_transform <- transformed$X.transform
+  if (isTRUE(.preprocessed)) {
+    X_fit <- X
 
-  X.transform <- list(
-    X.means = X_transform[, 1L],
-    X.scale = if (isTRUE(standardize)) {
-      X_transform[, 2L]
-    } else {
-      1
-    }
-  )
+    X.transform <- list(
+      X.means = rep(0, p),
+      X.scale = rep(1, p)
+    )
+  } else {
+    transformed <- sgl_center_scale_cpp(
+      X,
+      standardize
+    )
+
+    X_fit <- transformed$x
+    X_transform <- transformed$X.transform
+
+    X.transform <- list(
+      X.means = X_transform[, 1L],
+      X.scale = if (isTRUE(standardize)) {
+        X_transform[, 2L]
+      } else {
+        1
+      }
+    )
+  }
 
   if (identical(type, "linear")) {
     if (
@@ -299,14 +322,14 @@ SGL <- function(
     ) /
       n
 
-    lambda_max <- .SGL_lambda_max_from_gradient(
+    lambda_max <- SGL_lambda_max_from_gradient(
       gradient = initial_gradient,
       group_index = group_index,
       group_weight = group_weight,
       alpha = alpha
     )
 
-    lambda_path <- .SGL_make_lambda_path(
+    lambda_path <- SGL_make_lambda_path(
       lambdas = lambda_path,
       lambda_max = lambda_max,
       nlam = nlam,
@@ -365,8 +388,13 @@ SGL <- function(
 
       beta_path[, lambda_index] <- fit$beta[, 1L]
 
-      beta_start <- fit$beta
-      intercept_start <- fit$intercept
+      beta_start <- matrix(
+        0,
+        nrow = p,
+        ncol = 1L
+      )
+
+      intercept_start <- initial_intercept
 
       if (isTRUE(verbose)) {
         message(
@@ -423,20 +451,20 @@ SGL <- function(
 
     initial_intercept <- stats::qlogis(initial_probability)
 
-    initial_gradient <- crossprod(
-      X_fit,
-      initial_probability - y
-    ) /
-      n
+    m_y <- mean(y)
 
-    lambda_max <- .SGL_lambda_max_from_gradient(
+    resp <- m_y * m_y * (1 - m_y) - (y - m_y)
+
+    initial_gradient <- crossprod(X_fit, resp) / n
+
+    lambda_max <- SGL_lambda_max_from_gradient(
       gradient = initial_gradient,
       group_index = group_index,
       group_weight = group_weight,
       alpha = alpha
     )
 
-    lambda_path <- .SGL_make_lambda_path(
+    lambda_path <- SGL_make_lambda_path(
       lambdas = lambda_path,
       lambda_max = lambda_max,
       nlam = nlam,
@@ -523,20 +551,20 @@ SGL <- function(
 
     initial_beta <- numeric(p)
 
-    initial_gradient <- .SGL_cox_zero_gradient(
+    initial_gradient <- SGL_cox_zero_gradient(
       X = X_fit,
       time = time,
       status = status
     )
 
-    lambda_max <- .SGL_lambda_max_from_gradient(
+    lambda_max <- SGL_lambda_max_from_gradient(
       gradient = initial_gradient,
       group_index = group_index,
       group_weight = group_weight,
       alpha = alpha
     )
 
-    lambda_path <- .SGL_make_lambda_path(
+    lambda_path <- SGL_make_lambda_path(
       lambdas = lambda_path,
       lambda_max = lambda_max,
       nlam = nlam,
@@ -544,9 +572,11 @@ SGL <- function(
       gamma = gamma
     )
 
-    n_events <- sum(status == 1)
+    first_event_time <- min(time[status == 1])
 
-    step_size <- step / (1 + sum(X_fit * X_fit) / n_events)
+    n_active <- sum(time >= first_event_time)
+
+    step_size <- step / (1 + sum(X_fit * X_fit) / n_active)
 
     calculation_order <- order(
       lambda_path,

@@ -306,8 +306,34 @@ namespace
             layout.event_counts[i] =
                 event_counts_vec[i];
         }
-        layout.n_events =
-            n_events;
+        layout.n_events = n_events;
+        double first_event_time =
+            std::numeric_limits<double>::infinity();
+        for (arma::uword i = 0;
+                i < n;
+                ++i)
+        {
+            if (status_ptr[i] == 1.0)
+            {
+                first_event_time =
+                    std::min(
+                        first_event_time,
+                        time_ptr[i]
+                    );
+            }
+        }
+        arma::uword n_active = 0;
+        for (arma::uword i = 0;
+                i < n;
+                ++i)
+        {
+            if (time_ptr[i] >= first_event_time)
+            {
+                ++n_active;
+            }
+        }
+        layout.n_active =
+            n_active;
         return layout;
     }
 

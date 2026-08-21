@@ -17,7 +17,7 @@
 #' @param lambdas Optional user-supplied lambda sequence.
 #' @param foldid Optional fold assignment vector.
 #'
-#' @return An object of class \code{"cv.SGL"}.
+#' @return An object of class \code{"cvSGL"}.
 #'
 #' @export
 cvSGL <- function(
@@ -321,72 +321,34 @@ cvSGL <- function(
     )
   }
 
+  transformed <- sgl_center_scale_cpp(
+    X,
+    standardize
+  )
+
+  X_cv <- transformed$x
+  X_transform <- transformed$X.transform
+
+  full_X_transform <- list(
+    X.means = X_transform[, 1L],
+    X.scale = if (isTRUE(standardize)) {
+      X_transform[, 2L]
+    } else {
+      1
+    }
+  )
+
+  # 后续所有 fold 都从这份 X_cv 中取子集
+  data_cv$x <- X_cv
+
   # ------------------------------------------------------------
   # 生成或检查 fold
   # ------------------------------------------------------------
 
-  .cvSGL_make_foldid <- function(
-    type,
-    n,
-    nfold,
-    y = NULL,
-    status = NULL
-  ) {
-    if (identical(type, "logit")) {
-      counts <- table(y)
-
-      if (any(counts < nfold)) {
-        stop(
-          "Each logistic class must contain at least nfold "
-        )
-      }
-
-      strata <- split(
-        seq_len(n),
-        y
-      )
-    } else if (identical(type, "cox")) {
-      n_events <- sum(status == 1)
-
-      if (n_events < nfold) {
-        stop(
-          "The number of Cox events must be at least nfold."
-        )
-      }
-
-      strata <- split(
-        seq_len(n),
-        status
-      )
-    } else {
-      strata <- list(seq_len(n))
-    }
-
-    foldid <- integer(n)
-
-    for (current_stratum in strata) {
-      current_stratum <-
-        sample(current_stratum)
-
-      fold_values <- rep(
-        seq_len(nfold),
-        length.out = length(current_stratum)
-      )
-
-      foldid[current_stratum] <-
-        fold_values
-    }
-
-    foldid
-  }
-
   if (is.null(foldid)) {
-    foldid <- .cvSGL_make_foldid(
-      type = type,
+    foldid <- cvSGL_make_foldid(
       n = n,
-      nfold = nfold,
-      y = if (identical(type, "logit")) y else NULL,
-      status = if (identical(type, "cox")) status else NULL
+      nfold = nfold
     )
   } else {
     if (
@@ -400,18 +362,18 @@ cvSGL <- function(
       )
     }
 
-    fold_labels <- sort(unique(foldid))
+    nfold <- length(unique(foldid))
 
-    if (length(fold_labels) < 2L) {
-      stop("foldid must define at least two folds.")
+    if (
+      !identical(
+        sort(unique(foldid)),
+        seq_len(nfold)
+      )
+    ) {
+      stop(
+        "foldid labels must be 1, 2, ..., nfold."
+      )
     }
-
-    foldid <- match(
-      foldid,
-      fold_labels
-    )
-
-    nfold <- length(fold_labels)
   }
 
   if (identical(type, "logit")) {
@@ -442,132 +404,6 @@ cvSGL <- function(
   # 辅助函数
   # ------------------------------------------------------------
 
-  .cvSGL_subset_data <- function(
-    data_cv,
-    keep,
-    type
-  ) {
-    if (identical(type, "cox")) {
-      return(
-        list(
-          x = data_cv$x[keep, , drop = FALSE],
-          time = data_cv$time[keep],
-          status = data_cv$status[keep]
-        )
-      )
-    }
-
-    list(
-      x = data_cv$x[keep, , drop = FALSE],
-      y = data_cv$y[keep]
-    )
-  }
-
-  .cvSGL_eta <- function(
-    fit,
-    X
-  ) {
-    X <- as.matrix(X)
-
-    X_means <- as.numeric(
-      fit$X.transform$X.means
-    )
-
-    X_scale <- fit$X.transform$X.scale
-
-    if (is.null(X_scale)) {
-      X_scale <- rep(
-        1,
-        ncol(X)
-      )
-    }
-
-    X_scale <- rep(
-      as.numeric(X_scale),
-      length.out = ncol(X)
-    )
-
-    X_new <- sweep(
-      X,
-      2L,
-      X_means,
-      "-"
-    )
-
-    X_new <- sweep(
-      X_new,
-      2L,
-      X_scale,
-      "/"
-    )
-
-    eta <- X_new %*% fit$beta
-
-    if (!identical(type, "cox")) {
-      eta <- sweep(
-        eta,
-        2L,
-        as.numeric(fit$intercept),
-        "+"
-      )
-    }
-
-    eta
-  }
-
-  .cvSGL_cox_logsumexp <- function(x) {
-    if (!length(x)) {
-      return(-Inf)
-    }
-
-    maximum <- max(x)
-
-    maximum +
-      log(
-        sum(
-          exp(x - maximum)
-        )
-      )
-  }
-
-  .cvSGL_cox_negative_loglik <- function(
-    time,
-    status,
-    eta
-  ) {
-    event_times <- sort(
-      unique(
-        time[status == 1]
-      )
-    )
-
-    if (!length(event_times)) {
-      return(0)
-    }
-
-    objective <- 0
-
-    for (event_time in event_times) {
-      event <- (status == 1 &
-        time == event_time)
-
-      risk <- (time >= event_time)
-
-      event_count <- sum(event)
-
-      objective <- objective +
-        event_count *
-          .cvSGL_cox_logsumexp(
-            eta[risk]
-          ) -
-        sum(
-          eta[event]
-        )
-    }
-
-    objective
-  }
-
   # ------------------------------------------------------------
   # 先对完整数据拟合一次，确定共同 lambda path
   # ------------------------------------------------------------
@@ -586,7 +422,8 @@ cvSGL <- function(
     step = as.numeric(step),
     reset = as.integer(reset),
     alpha = as.numeric(alpha),
-    lambdas = lambdas
+    lambdas = lambdas,
+    .preprocessed = TRUE
   )
 
   lambda_path <- as.numeric(
@@ -617,7 +454,7 @@ cvSGL <- function(
     ind.out <- foldid == fold
     ind.in <- !ind.out
 
-    new_data <- .cvSGL_subset_data(
+    new_data <- cvSGL_subset_data(
       data_cv = data_cv,
       keep = ind.in,
       type = type
@@ -637,51 +474,33 @@ cvSGL <- function(
       step = as.numeric(step),
       reset = as.integer(reset),
       alpha = as.numeric(alpha),
-      lambdas = lambda_path
+      lambdas = lambda_path,
+      .preprocessed = TRUE
     )
 
-    eta_all <- .cvSGL_eta(
-      fit = new_fit,
-      X = X
-    )
+    eta_all <- cvSGL_eta_cpp(fit = new_fit, X = X_cv, type = type)
 
     if (identical(type, "linear")) {
       y_out <- y[ind.out]
 
       for (lambda_index in seq_len(n_lambda)) {
-        eta_out <- eta_all[
-          ind.out,
-          lambda_index
-        ]
+        eta_out <- eta_all[ind.out, lambda_index]
 
-        loss <- 0.5 *
-          (y_out - eta_out)^2
+        loss <- 0.5 * (y_out - eta_out)^2
 
-        lldiffFold[
-          lambda_index,
-          fold
-        ] <- sum(loss)
+        lldiffFold[lambda_index, fold] <- sum(loss)
 
-        prevals[
-          ind.out,
-          lambda_index
-        ] <- eta_out
+        prevals[ind.out, lambda_index] <- eta_out
       }
     } else if (identical(type, "logit")) {
       y_out <- y[ind.out]
 
       for (lambda_index in seq_len(n_lambda)) {
-        eta_out <- eta_all[
-          ind.out,
-          lambda_index
-        ]
+        eta_out <- eta_all[ind.out, lambda_index]
 
         # 稳定计算：
         # -y * eta + log(1 + exp(eta))
-        loss <- pmax(
-          eta_out,
-          0
-        ) -
+        loss <- pmax(eta_out, 0) -
           y_out * eta_out +
           log1p(
             exp(
@@ -689,39 +508,25 @@ cvSGL <- function(
             )
           )
 
-        lldiffFold[
-          lambda_index,
-          fold
-        ] <- sum(loss)
+        lldiffFold[lambda_index, fold] <- sum(loss)
 
-        prevals[
-          ind.out,
-          lambda_index
-        ] <- plogis(
-          eta_out
-        )
+        prevals[ind.out, lambda_index] <- stats::plogis(eta_out)
       }
     } else {
-      eta_train <- eta_all[
-        ind.in,
-        ,
-        drop = FALSE
-      ]
+      eta_train <- eta_all[ind.in, , drop = FALSE]
 
       for (lambda_index in seq_len(n_lambda)) {
-        eta_current <- eta_all[,
-          lambda_index
-        ]
+        eta_current <- eta_all[, lambda_index]
 
         full_loss <-
-          .cvSGL_cox_negative_loglik(
+          cvSGL_cox_negative_loglik(
             time = time,
             status = status,
             eta = eta_current
           )
 
         train_loss <-
-          .cvSGL_cox_negative_loglik(
+          cvSGL_cox_negative_loglik(
             time = time[ind.in],
             status = status[ind.in],
             eta = eta_train[,
@@ -733,15 +538,9 @@ cvSGL <- function(
         # full negative log-likelihood -
         # training negative log-likelihood
         # 保持一致。
-        lldiffFold[
-          lambda_index,
-          fold
-        ] <- full_loss - train_loss
+        lldiffFold[lambda_index, fold] <- full_loss - train_loss
 
-        prevals[
-          ind.out,
-          lambda_index
-        ] <- eta_current[ind.out]
+        prevals[ind.out, lambda_index] <- eta_current[ind.out]
       }
     }
 
@@ -755,46 +554,32 @@ cvSGL <- function(
       )
     }
   }
+  # fit 的系数基于 X_cv，
+  # 但对外预测时仍应保存原始数据对应的变换参数。
+  fit$X.transform <- full_X_transform
+  lldiff <- if (requireNamespace("matrixStats", quietly = TRUE)) {
+    matrixStats::rowSums2(lldiffFold)
+  } else {
+    rowSums(lldiffFold)
+  }
 
-  lldiff <- rowMeans(
-    lldiffFold
-  )
+  llSD <- if (requireNamespace("matrixStats", quietly = TRUE)) {
+    matrixStats::rowSds(lldiffFold) * sqrt(nfold)
+  } else {
+    apply(lldiffFold, 1L, stats::sd) * sqrt(nfold)
+  }
 
-  llSD <- apply(
-    lldiffFold,
-    1L,
-    stats::sd
-  ) *
-    sqrt(nfold)
+  lambda_min_index <- which.min(lldiff)
 
-  lambda_min_index <- which.min(
-    lldiff
-  )
+  lambda_min <- lambda_path[lambda_min_index]
 
-  lambda_min <- lambda_path[
-    lambda_min_index
-  ]
+  one_se_limit <- lldiff[lambda_min_index] + llSD[lambda_min_index]
 
-  one_se_limit <- lldiff[
-    lambda_min_index
-  ] +
-    llSD[
-      lambda_min_index
-    ]
+  eligible <- which(lldiff <= one_se_limit)
 
-  eligible <- which(
-    lldiff <= one_se_limit
-  )
+  lambda_1se_index <- eligible[which.max(lambda_path[eligible])]
 
-  lambda_1se_index <- eligible[
-    which.max(
-      lambda_path[eligible]
-    )
-  ]
-
-  lambda_1se <- lambda_path[
-    lambda_1se_index
-  ]
+  lambda_1se <- lambda_path[lambda_1se_index]
 
   result <- list(
     lldiff = as.numeric(lldiff),
@@ -811,7 +596,72 @@ cvSGL <- function(
     lldiffFold = lldiffFold
   )
 
-  class(result) <- "cv.SGL"
+  class(result) <- "cvSGL"
 
   result
+}
+
+cvSGL_make_foldid <- function(
+  n,
+  nfold
+) {
+  folds <- cut(
+    seq(1, n),
+    breaks = nfold,
+    labels = FALSE
+  )
+
+  sample(
+    folds,
+    replace = FALSE
+  )
+}
+
+cvSGL_subset_data <- function(
+  data_cv,
+  keep,
+  type
+) {
+  if (identical(type, "cox")) {
+    return(
+      list(
+        x = data_cv$x[keep, , drop = FALSE],
+        time = data_cv$time[keep],
+        status = data_cv$status[keep]
+      )
+    )
+  }
+
+  list(
+    x = data_cv$x[keep, , drop = FALSE],
+    y = data_cv$y[keep]
+  )
+}
+
+cvSGL_cox_negative_loglik <- function(
+  time,
+  status,
+  eta
+) {
+  event_times <- sort(unique(time[status == 1]))
+
+  if (!length(event_times)) {
+    return(0)
+  }
+
+  objective <- 0
+
+  for (event_time in event_times) {
+    event <- (status == 1 & time == event_time)
+
+    risk <- (time >= event_time)
+
+    event_count <- sum(event)
+
+    objective <- objective +
+      event_count * cvSGL_cox_logsumexp(eta[risk]) - # cpp
+      sum(eta[event])
+  }
+
+  objective
 }

@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# SGL
+# SGL2
 
   <!-- badges: start -->
   [![R-CMD-check](https://github.com/Exceret/SGL/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Exceret/SGL/actions/workflows/R-CMD-check.yaml)
@@ -27,5 +27,5 @@ You can install the development version of SGL from [GitHub](https://github.com/
 
 ``` r
 # install.packages("pak")
-pak::pak("Exceret/SGL")
+pak::pak("Exceret/SGL2")
 ```

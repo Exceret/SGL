@@ -1,3 +1,4 @@
+skip_if_not_installed("SGL")
 skip()
 
 make_sgl_test_data <- function(
@@ -144,7 +145,11 @@ make_sgl_test_data <- function(
   )
 }
 
-test_that("SGL dispatches all supported model types", {
+is_tolerant <- function(x, y, tol = 1e-8) {
+  max(abs(x - y)) < tol
+}
+
+test_that("SGL dispatches all supported linear model", {
   data <- make_sgl_test_data()
 
   linear_fit <- SGL(
@@ -165,6 +170,18 @@ test_that("SGL dispatches all supported model types", {
     type = "linear"
   )
 
+  expect_true(is_tolerant(linear_fit$beta, linear_fit_raw$beta))
+  expect_true(is_tolerant(linear_fit$intercept, linear_fit_raw$intercept))
+  expect_true(is_tolerant(linear_fit$lambdas, linear_fit_raw$lambdas))
+  expect_true(is_tolerant(
+    linear_fit$X.transform$X.means,
+    linear_fit_raw$X.transform$X.means
+  ))
+  expect_true(is_tolerant(
+    linear_fit$X.transform$X.scale,
+    linear_fit_raw$X.transform$X.scale
+  ))
+
   cv_linear <- cvSGL(
     data = list(
       x = data$X,
@@ -174,15 +191,15 @@ test_that("SGL dispatches all supported model types", {
     type = "linear",
     lambdas = linear_fit$lambdas
   )
-  cv_linear2 <- SGL::cvSGL(
-    data = list(
-      x = data$X,
-      y = data$y_linear
-    ),
-    index = data$index,
-    type = "linear",
-    lambdas = linear_fit$lambdas
-  )
+  # cv_linear2 <- SGL::cvSGL(
+  #   data = list(
+  #     x = data$X,
+  #     y = data$y_linear
+  #   ),
+  #   index = data$index,
+  #   type = "linear",
+  #   lambdas = linear_fit$lambdas
+  # )
   cv_linear_raw <- SGL::cvSGL(
     data = list(
       x = data$X,
@@ -192,50 +209,93 @@ test_that("SGL dispatches all supported model types", {
     type = "linear",
     lambdas = linear_fit_raw$lambdas
   )
-
-  # ----------------------------------------------------------------------------
-  logit_fit <- SGL(
-    data = list(
-      x = data$X,
-      y = data$y_logit
-    ),
-    index = data$index,
-    type = "logit",
-    step = 0.01
-  )
-
-  cox_fit <- SGL(
-    data = list(
-      x = data$X,
-      y = data$y_cox
-    ),
-    index = data$index,
-    type = "cox",
-    lambdas = c(0.1, 0.05),
-    maxit = 800L,
-    thresh = 1e-6
-  )
-
-  logit_fit_raw <- SGL::SGL(
-    data = list(
-      x = data$X,
-      y = data$y_logit
-    ),
-    index = data$index,
-    type = "logit",
-    step = 0.01
-  )
-
-  cox_fit_raw <- SGL::SGL(
-    data = list(
-      x = data$X,
-      time = data$y_cox[, 1L],
-      status = data$y_cox[, 2L]
-    ),
-    index = data$index,
-    type = "cox",
-    lambdas = c(0.1, 0.05),
-    maxit = 800L,
-    thresh = 1e-6
-  )
 })
+
+# ----------------------------------------------------------------------------
+logit_fit <- SGL(
+  data = list(
+    x = data$X,
+    y = data$y_logit
+  ),
+  index = data$index,
+  type = "logit",
+  step = 0.01
+)
+
+cox_fit <- SGL(
+  data = list(
+    x = data$X,
+    y = data$y_cox
+  ),
+  index = data$index,
+  type = "cox",
+  lambdas = c(0.1, 0.05),
+  maxit = 800L,
+  thresh = 1e-6
+)
+
+logit_fit_raw <- SGL::SGL(
+  data = list(
+    x = data$X,
+    y = data$y_logit
+  ),
+  index = data$index,
+  type = "logit",
+  step = 0.01
+)
+
+cox_fit_raw <- SGL::SGL(
+  data = list(
+    x = data$X,
+    time = data$y_cox[, 1L],
+    status = data$y_cox[, 2L]
+  ),
+  index = data$index,
+  type = "cox",
+  lambdas = c(0.1, 0.05),
+  maxit = 800L,
+  thresh = 1e-6
+)
+
+
+microbenchmark::microbenchmark(
+  cpp = {
+    linear_fit <- SGL(
+      data = list(
+        x = data$X,
+        y = data$y_linear
+      ),
+      index = data$index,
+      type = "linear"
+    )
+
+    cv_linear <- cvSGL(
+      data = list(
+        x = data$X,
+        y = data$y_linear
+      ),
+      index = data$index,
+      type = "linear",
+      lambdas = linear_fit$lambdas
+    )
+  },
+  r = {
+    linear_fit_raw <- SGL::SGL(
+      data = list(
+        x = data$X,
+        y = data$y_linear
+      ),
+      index = data$index,
+      type = "linear"
+    )
+    cv_linear_raw <- SGL::cvSGL(
+      data = list(
+        x = data$X,
+        y = data$y_linear
+      ),
+      index = data$index,
+      type = "linear",
+      lambdas = linear_fit_raw$lambdas
+    )
+  }
+)

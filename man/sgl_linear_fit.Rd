@@ -2,7 +2,7 @@
 % Please edit documentation in R/sgl_linear_fit.R
 \name{sgl_linear_fit}
 \alias{sgl_linear_fit}
-\alias{print.sgl_linear_fit}
+\alias{printSGL_linear_fit}
 \title{Fit a linear sparse-group lasso model}
 \usage{
 sgl_linear_fit(X, y, group_index, lambda, alpha = 1, group_weight = NULL,

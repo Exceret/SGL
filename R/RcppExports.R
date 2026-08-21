@@ -5,6 +5,14 @@ sgl_center_scale_cpp <- function(X, standardize = TRUE) {
     .Call(`_SGL2_sgl_center_scale_cpp`, X, standardize)
 }
 
+cvSGL_cox_logsumexp <- function(x) {
+    .Call(`_SGL2_cvSGL_cox_logsumexp`, x)
+}
+
+cvSGL_eta_cpp <- function(fit, X, type = "cox") {
+    .Call(`_SGL2_cvSGL_eta_cpp`, fit, X, type)
+}
+
 sgl_lambda_max_from_gradient_cpp <- function(gradient, group_index, group_weight, alpha) {
     .Call(`_SGL2_sgl_lambda_max_from_gradient_cpp`, gradient, group_index, group_weight, alpha)
 }

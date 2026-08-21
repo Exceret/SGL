@@ -23,6 +23,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cvSGL_cox_logsumexp
+double cvSGL_cox_logsumexp(NumericVector x);
+RcppExport SEXP _SGL2_cvSGL_cox_logsumexp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(cvSGL_cox_logsumexp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cvSGL_eta_cpp
+arma::mat cvSGL_eta_cpp(Rcpp::List fit, arma::mat X, std::string type);
+RcppExport SEXP _SGL2_cvSGL_eta_cpp(SEXP fitSEXP, SEXP XSEXP, SEXP typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type fit(fitSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    Rcpp::traits::input_parameter< std::string >::type type(typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(cvSGL_eta_cpp(fit, X, type));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sgl_lambda_max_from_gradient_cpp
 double sgl_lambda_max_from_gradient_cpp(const arma::mat& gradient, const arma::mat& group_index, const arma::mat& group_weight, const double alpha);
 RcppExport SEXP _SGL2_sgl_lambda_max_from_gradient_cpp(SEXP gradientSEXP, SEXP group_indexSEXP, SEXP group_weightSEXP, SEXP alphaSEXP) {
@@ -478,6 +502,8 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_SGL2_sgl_center_scale_cpp", (DL_FUNC) &_SGL2_sgl_center_scale_cpp, 2},
+    {"_SGL2_cvSGL_cox_logsumexp", (DL_FUNC) &_SGL2_cvSGL_cox_logsumexp, 1},
+    {"_SGL2_cvSGL_eta_cpp", (DL_FUNC) &_SGL2_cvSGL_eta_cpp, 3},
     {"_SGL2_sgl_lambda_max_from_gradient_cpp", (DL_FUNC) &_SGL2_sgl_lambda_max_from_gradient_cpp, 4},
     {"_SGL2_sgl_make_lambda_path_cpp", (DL_FUNC) &_SGL2_sgl_make_lambda_path_cpp, 5},
     {"_SGL2_sgl_parse_cox_response_cpp", (DL_FUNC) &_SGL2_sgl_parse_cox_response_cpp, 1},

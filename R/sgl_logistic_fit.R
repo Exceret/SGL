@@ -260,7 +260,7 @@ sgl_logistic_fit <- function(
 #' @export
 #' @method print sgl_logistic_fit
 #' @rdname sgl_logistic_fit
-print.sgl_logistic_fit <- function(x, ...) {
+printSGL_logistic_fit <- function(x, ...) {
   message("Logistic sparse-group lasso fit\n")
   message("Objective:", format(x$objective), "\n")
   message("Iterations:", x$iterations, "\n")

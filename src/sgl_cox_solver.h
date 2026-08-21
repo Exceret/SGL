@@ -18,7 +18,9 @@ namespace sgl
         arma::uvec order;
         arma::uvec offsets;
         arma::uvec event_counts;
+
         arma::uword n_events;
+        arma::uword n_active;
     };
 
 
@@ -277,24 +279,17 @@ namespace sgl
                     event_eta_sum;
             }
         }
-        const double inverse_events =
-            1.0 /
-            static_cast<double>(
-                layout.n_events
-            );
-        for (arma::uword j = 0;
-                j < p;
-                ++j)
+        const double inverse_active = 1.0 / static_cast<double>(layout.n_active);
+        for (arma::uword j = 0; j < p; ++j)
         {
             gradient_ptr[j] *=
-                inverse_events;
+                inverse_active;
         }
         if (!calculate_objective)
         {
             return 0.0;
         }
-        return objective *
-               inverse_events;
+        return objective * inverse_active;
     }
 
 
@@ -399,7 +394,7 @@ namespace sgl
         }
         return objective /
                static_cast<double>(
-                   layout.n_events
+                   layout.n_active
                );
     }
 

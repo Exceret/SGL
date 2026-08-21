@@ -1,4 +1,4 @@
-.SGL_lambda_max_from_gradient <- function(
+SGL_lambda_max_from_gradient <- function(
   gradient,
   group_index,
   group_weight,
@@ -22,7 +22,7 @@
 }
 
 
-.SGL_make_lambda_path <- function(
+SGL_make_lambda_path <- function(
   lambdas,
   lambda_max,
   nlam,
@@ -39,7 +39,7 @@
 }
 
 
-.SGL_cox_zero_gradient <- function(
+SGL_cox_zero_gradient <- function(
   X,
   time,
   status

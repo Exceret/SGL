@@ -1,6 +1,6 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# SGL
+# SGL2
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/Exceret/SGL/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Exceret/SGL/actions/workflows/R-CMD-check.yaml)
@@ -13,5 +13,5 @@ You can install the development version of SGL from
 
 ``` r
 # install.packages("pak")
-pak::pak("Exceret/SGL")
+pak::pak("Exceret/SGL2")
 ```

@@ -29,4 +29,5 @@ LinkingTo:
     RcppArmadillo
 Encoding: UTF-8
 Suggests: 
+    matrixStats,
     SGL
