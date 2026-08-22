@@ -48,14 +48,15 @@ namespace sgl
                 eta_ptr[i] -
                 y_ptr[i];
         }
-        return gradient;
+        return gradient /
+               static_cast<double>(n);
     }
 
 
     /*
-     * Unnormalized Logistic intercept gradient:
+     * Gradient of the mean linear-model loss:
      *
-     *   dL/db0 = sum_i (plogis(eta_i) - y_i)
+     *   dL/db0 = sum_i (eta_i - y_i) / n
      */
     inline double logistic_intercept_gradient(
         const arma::mat& eta,
@@ -79,7 +80,8 @@ namespace sgl
                 probability -
                 y_ptr[i];
         }
-        return gradient;
+        return gradient /
+               static_cast<double>(n);
     }
 
 

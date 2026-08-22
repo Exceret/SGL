@@ -5,6 +5,10 @@ sgl_center_scale_cpp <- function(X, standardize = TRUE) {
     .Call(`_SGL2_sgl_center_scale_cpp`, X, standardize)
 }
 
+sgl_apply_center_scale_cpp <- function(X, X_transform, standardize = TRUE) {
+    .Call(`_SGL2_sgl_apply_center_scale_cpp`, X, X_transform, standardize)
+}
+
 cvSGL_cox_logsumexp <- function(x) {
     .Call(`_SGL2_cvSGL_cox_logsumexp`, x)
 }
@@ -107,6 +111,10 @@ sgl_update_linear_predictor_state_cpp <- function(eta, X, beta_old, beta_new, in
 
 sgl_linear_fit_cpp <- function(X, y, group_index, group_weight, initial_beta, initial_intercept, lambda, alpha, step_size, max_iter, tol, fit_intercept) {
     .Call(`_SGL2_sgl_linear_fit_cpp`, X, y, group_index, group_weight, initial_beta, initial_intercept, lambda, alpha, step_size, max_iter, tol, fit_intercept)
+}
+
+sgl_linear_path_cpp <- function(X, y, group_index, group_weight, initial_beta, initial_intercept, lambda_path, alpha, step_size, max_iter, tol, fit_intercept) {
+    .Call(`_SGL2_sgl_linear_path_cpp`, X, y, group_index, group_weight, initial_beta, initial_intercept, lambda_path, alpha, step_size, max_iter, tol, fit_intercept)
 }
 
 sgl_logistic_fit_cpp <- function(X, y, group_index, group_weight, initial_beta, initial_intercept, lambda, alpha, step_size, max_iter, tol, fit_intercept) {

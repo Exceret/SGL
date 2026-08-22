@@ -321,26 +321,6 @@ cvSGL <- function(
     )
   }
 
-  transformed <- sgl_center_scale_cpp(
-    X,
-    standardize
-  )
-
-  X_cv <- transformed$x
-  X_transform <- transformed$X.transform
-
-  full_X_transform <- list(
-    X.means = X_transform[, 1L],
-    X.scale = if (isTRUE(standardize)) {
-      X_transform[, 2L]
-    } else {
-      1
-    }
-  )
-
-  # 后续所有 fold 都从这份 X_cv 中取子集
-  data_cv$x <- X_cv
-
   # ------------------------------------------------------------
   # 生成或检查 fold
   # ------------------------------------------------------------
@@ -423,7 +403,7 @@ cvSGL <- function(
     reset = as.integer(reset),
     alpha = as.numeric(alpha),
     lambdas = lambdas,
-    .preprocessed = TRUE
+    .preprocessed = FALSE
   )
 
   lambda_path <- as.numeric(
@@ -454,11 +434,46 @@ cvSGL <- function(
     ind.out <- foldid == fold
     ind.in <- !ind.out
 
+    X_train_raw <- X[
+      ind.in,
+      ,
+      drop = FALSE
+    ]
+
+    X_out_raw <- X[
+      ind.out,
+      ,
+      drop = FALSE
+    ]
+
+    # 只使用训练集计算均值和 scale
+    transformed_fold <- SGL_transform_train_test(
+      X_train = X_train_raw,
+      X_test = X_out_raw,
+      standardize = isTRUE(standardize)
+    )
+
+    X_train <- transformed_fold$x_train
+    X_out <- transformed_fold$x_test
+
+    # 构造使用训练集变换参数转换后的完整矩阵
+    X_fold <- matrix(
+      NA_real_,
+      nrow = n,
+      ncol = p
+    )
+
+    X_fold[ind.in, ] <- X_train
+    X_fold[ind.out, ] <- X_out
+
     new_data <- cvSGL_subset_data(
       data_cv = data_cv,
       keep = ind.in,
       type = type
     )
+
+    # 训练数据已经预处理，因此必须跳过 SGL 内部预处理
+    new_data$x <- X_train
 
     new_fit <- SGL(
       data = new_data,
@@ -478,7 +493,7 @@ cvSGL <- function(
       .preprocessed = TRUE
     )
 
-    eta_all <- cvSGL_eta_cpp(fit = new_fit, X = X_cv, type = type)
+    eta_all <- cvSGL_eta_cpp(fit = new_fit, X = X_fold, type = type)
 
     if (identical(type, "linear")) {
       y_out <- y[ind.out]
@@ -498,14 +513,11 @@ cvSGL <- function(
       for (lambda_index in seq_len(n_lambda)) {
         eta_out <- eta_all[ind.out, lambda_index]
 
-        # 稳定计算：
-        # -y * eta + log(1 + exp(eta))
+        # 稳定的 logistic loss
         loss <- pmax(eta_out, 0) -
           y_out * eta_out +
           log1p(
-            exp(
-              -abs(eta_out)
-            )
+            exp(-abs(eta_out))
           )
 
         lldiffFold[lambda_index, fold] <- sum(loss)
@@ -518,26 +530,20 @@ cvSGL <- function(
       for (lambda_index in seq_len(n_lambda)) {
         eta_current <- eta_all[, lambda_index]
 
-        full_loss <-
-          cvSGL_cox_negative_loglik(
-            time = time,
-            status = status,
-            eta = eta_current
-          )
+        full_loss <- cvSGL_cox_negative_loglik(
+          time = time,
+          status = status,
+          eta = eta_current
+        )
 
-        train_loss <-
-          cvSGL_cox_negative_loglik(
-            time = time[ind.in],
-            status = status[ind.in],
-            eta = eta_train[,
-              lambda_index
-            ]
-          )
+        train_loss <- cvSGL_cox_negative_loglik(
+          time = time[ind.in],
+          status = status[ind.in],
+          eta = eta_train[,
+            lambda_index
+          ]
+        )
 
-        # 与 main 分支 coxCrossVal 的
-        # full negative log-likelihood -
-        # training negative log-likelihood
-        # 保持一致。
         lldiffFold[lambda_index, fold] <- full_loss - train_loss
 
         prevals[ind.out, lambda_index] <- eta_current[ind.out]
@@ -554,9 +560,7 @@ cvSGL <- function(
       )
     }
   }
-  # fit 的系数基于 X_cv，
-  # 但对外预测时仍应保存原始数据对应的变换参数。
-  fit$X.transform <- full_X_transform
+  # fit$X.transform <- full_X_transform
   lldiff <- if (requireNamespace("matrixStats", quietly = TRUE)) {
     matrixStats::rowSums2(lldiffFold)
   } else {
@@ -663,5 +667,15 @@ cvSGL_cox_negative_loglik <- function(
       sum(eta[event])
   }
 
-  objective
+  first_event_time <- min(event_times)
+
+  n_active <- sum(
+    time >= first_event_time
+  )
+
+  if (n_active <= 0L) {
+    return(0)
+  }
+
+  objective / n_active
 }

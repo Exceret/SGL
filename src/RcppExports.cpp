@@ -23,6 +23,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// sgl_apply_center_scale_cpp
+arma::mat sgl_apply_center_scale_cpp(const arma::mat& X, const arma::mat& X_transform, const bool standardize);
+RcppExport SEXP _SGL2_sgl_apply_center_scale_cpp(SEXP XSEXP, SEXP X_transformSEXP, SEXP standardizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type X_transform(X_transformSEXP);
+    Rcpp::traits::input_parameter< const bool >::type standardize(standardizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(sgl_apply_center_scale_cpp(X, X_transform, standardize));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cvSGL_cox_logsumexp
 double cvSGL_cox_logsumexp(NumericVector x);
 RcppExport SEXP _SGL2_cvSGL_cox_logsumexp(SEXP xSEXP) {
@@ -391,6 +404,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// sgl_linear_path_cpp
+Rcpp::List sgl_linear_path_cpp(const arma::mat& X, const arma::mat& y, const arma::mat& group_index, const arma::mat& group_weight, const arma::mat& initial_beta, const arma::mat& initial_intercept, const Rcpp::NumericVector& lambda_path, const double alpha, const double step_size, const int max_iter, const double tol, const bool fit_intercept);
+RcppExport SEXP _SGL2_sgl_linear_path_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_indexSEXP, SEXP group_weightSEXP, SEXP initial_betaSEXP, SEXP initial_interceptSEXP, SEXP lambda_pathSEXP, SEXP alphaSEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP tolSEXP, SEXP fit_interceptSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type group_index(group_indexSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type group_weight(group_weightSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type initial_beta(initial_betaSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type initial_intercept(initial_interceptSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type lambda_path(lambda_pathSEXP);
+    Rcpp::traits::input_parameter< const double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const double >::type step_size(step_sizeSEXP);
+    Rcpp::traits::input_parameter< const int >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< const double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< const bool >::type fit_intercept(fit_interceptSEXP);
+    rcpp_result_gen = Rcpp::wrap(sgl_linear_path_cpp(X, y, group_index, group_weight, initial_beta, initial_intercept, lambda_path, alpha, step_size, max_iter, tol, fit_intercept));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sgl_logistic_fit_cpp
 Rcpp::List sgl_logistic_fit_cpp(const arma::mat& X, const arma::mat& y, const arma::mat& group_index, const arma::mat& group_weight, const arma::mat& initial_beta, const arma::mat& initial_intercept, const double lambda, const double alpha, const double step_size, const int max_iter, const double tol, const bool fit_intercept);
 RcppExport SEXP _SGL2_sgl_logistic_fit_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_indexSEXP, SEXP group_weightSEXP, SEXP initial_betaSEXP, SEXP initial_interceptSEXP, SEXP lambdaSEXP, SEXP alphaSEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP tolSEXP, SEXP fit_interceptSEXP) {
@@ -502,6 +537,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_SGL2_sgl_center_scale_cpp", (DL_FUNC) &_SGL2_sgl_center_scale_cpp, 2},
+    {"_SGL2_sgl_apply_center_scale_cpp", (DL_FUNC) &_SGL2_sgl_apply_center_scale_cpp, 3},
     {"_SGL2_cvSGL_cox_logsumexp", (DL_FUNC) &_SGL2_cvSGL_cox_logsumexp, 1},
     {"_SGL2_cvSGL_eta_cpp", (DL_FUNC) &_SGL2_cvSGL_eta_cpp, 3},
     {"_SGL2_sgl_lambda_max_from_gradient_cpp", (DL_FUNC) &_SGL2_sgl_lambda_max_from_gradient_cpp, 4},
@@ -528,6 +564,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SGL2_sgl_initialize_linear_predictor_cpp", (DL_FUNC) &_SGL2_sgl_initialize_linear_predictor_cpp, 3},
     {"_SGL2_sgl_update_linear_predictor_state_cpp", (DL_FUNC) &_SGL2_sgl_update_linear_predictor_state_cpp, 6},
     {"_SGL2_sgl_linear_fit_cpp", (DL_FUNC) &_SGL2_sgl_linear_fit_cpp, 12},
+    {"_SGL2_sgl_linear_path_cpp", (DL_FUNC) &_SGL2_sgl_linear_path_cpp, 12},
     {"_SGL2_sgl_logistic_fit_cpp", (DL_FUNC) &_SGL2_sgl_logistic_fit_cpp, 12},
     {"_SGL2_sgl_logistic_path_cpp", (DL_FUNC) &_SGL2_sgl_logistic_path_cpp, 12},
     {"_SGL2_sgl_logistic_probability_cpp", (DL_FUNC) &_SGL2_sgl_logistic_probability_cpp, 1},

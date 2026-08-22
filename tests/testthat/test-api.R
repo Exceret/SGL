@@ -146,7 +146,11 @@ make_sgl_test_data <- function(
 }
 
 is_tolerant <- function(x, y, tol = 1e-8) {
-  max(abs(x - y)) < tol
+  diff <- max(abs(x - y))
+  flag <- diff < tol
+  if (!flag) {
+    message("Tolerant: ", tol, ", diff: ", diff)
+  }
 }
 
 test_that("SGL dispatches all supported linear model", {
@@ -257,45 +261,86 @@ cox_fit_raw <- SGL::SGL(
   thresh = 1e-6
 )
 
+# microbenchmark::microbenchmark(
+#   cpp = {
+#     linear_fit <- SGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear"
+#     )
 
-microbenchmark::microbenchmark(
-  cpp = {
-    linear_fit <- SGL(
-      data = list(
-        x = data$X,
-        y = data$y_linear
-      ),
-      index = data$index,
-      type = "linear"
-    )
+#     cv_linear <- cvSGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear",
+#       lambdas = linear_fit$lambdas
+#     )
+#   },
+#   r = {
+#     linear_fit_raw <- SGL::SGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear"
+#     )
+#     cv_linear_raw <- SGL::cvSGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear",
+#       lambdas = linear_fit_raw$lambdas
+#     )
+#   }
+# )
 
-    cv_linear <- cvSGL(
-      data = list(
-        x = data$X,
-        y = data$y_linear
-      ),
-      index = data$index,
-      type = "linear",
-      lambdas = linear_fit$lambdas
-    )
-  },
-  r = {
-    linear_fit_raw <- SGL::SGL(
-      data = list(
-        x = data$X,
-        y = data$y_linear
-      ),
-      index = data$index,
-      type = "linear"
-    )
-    cv_linear_raw <- SGL::cvSGL(
-      data = list(
-        x = data$X,
-        y = data$y_linear
-      ),
-      index = data$index,
-      type = "linear",
-      lambdas = linear_fit_raw$lambdas
-    )
-  }
-)
+# peakRAM::peakRAM(
+#   cpp = {
+#     linear_fit <- SGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear"
+#     )
+
+#     cv_linear <- cvSGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear",
+#       lambdas = linear_fit$lambdas
+#     )
+#   },
+#   r = {
+#     linear_fit_raw <- SGL::SGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear"
+#     )
+#     cv_linear_raw <- SGL::cvSGL(
+#       data = list(
+#         x = data$X,
+#         y = data$y_linear
+#       ),
+#       index = data$index,
+#       type = "linear",
+#       lambdas = linear_fit_raw$lambdas
+#     )
+#   }
+# )

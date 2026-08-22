@@ -345,67 +345,45 @@ SGL <- function(
       method = "radix"
     )
 
-    n_lambda <- length(lambda_path)
-
-    beta_path <- matrix(
-      0,
-      nrow = p,
-      ncol = n_lambda
-    )
-
-    fits <- vector(
-      mode = "list",
-      length = n_lambda
-    )
-
-    beta_start <- matrix(
-      0,
-      nrow = p,
-      ncol = 1L
-    )
-
-    intercept_start <- initial_intercept
-
-    for (position in seq_along(calculation_order)) {
-      lambda_index <- calculation_order[position]
-
-      fit <- sgl_linear_fit(
-        X = X_fit,
-        y = y_matrix,
-        group_index = group_index,
-        group_weight = group_weight,
-        lambda = lambda_path[lambda_index],
-        alpha = alpha,
-        step_size = step_size,
-        max_iter = as.integer(maxit),
-        tol = thresh,
-        fit_intercept = TRUE,
-        initial_beta = beta_start,
-        initial_intercept = intercept_start
-      )
-
-      fits[[lambda_index]] <- fit
-
-      beta_path[, lambda_index] <- fit$beta[, 1L]
-
-      beta_start <- matrix(
+    path_fit <- sgl_linear_path_cpp(
+      X = X_fit,
+      y = y_matrix,
+      group_index = group_index,
+      group_weight = group_weight,
+      initial_beta = matrix(
         0,
         nrow = p,
         ncol = 1L
-      )
+      ),
+      initial_intercept = initial_intercept,
+      lambda_path = lambda_path,
+      alpha = as.numeric(alpha),
+      step_size = as.numeric(step_size),
+      max_iter = as.integer(maxit),
+      tol = as.numeric(thresh),
+      fit_intercept = TRUE
+    )
 
-      intercept_start <- initial_intercept
+    beta_path <- path_fit$beta_path
 
-      if (isTRUE(verbose)) {
+    intercept_path <- as.numeric(
+      path_fit$intercept_path
+    )
+
+    if (isTRUE(verbose)) {
+      for (position in seq_along(calculation_order)) {
+        lambda_index <-
+          calculation_order[position]
+
         message(
           "linear lambda[",
           lambda_index,
           "] = ",
           format(lambda_path[lambda_index]),
           ", iterations = ",
-          fit$iterations,
+          path_fit$iterations[lambda_index],
           ", converged = ",
-          fit$converged
+          path_fit$converged[lambda_index]
         )
       }
     }
@@ -414,7 +392,7 @@ SGL <- function(
       beta = beta_path,
       lambdas = lambda_path,
       type = "linear",
-      intercept = mean(y),
+      intercept = intercept_path,
       X.transform = X.transform
     )
   } else if (identical(type, "logit")) {
@@ -451,11 +429,11 @@ SGL <- function(
 
     initial_intercept <- stats::qlogis(initial_probability)
 
-    m_y <- mean(y)
-
-    resp <- m_y * m_y * (1 - m_y) - (y - m_y)
-
-    initial_gradient <- crossprod(X_fit, resp) / n
+    initial_gradient <- crossprod(
+      X_fit,
+      initial_probability - y
+    ) /
+      n
 
     lambda_max <- SGL_lambda_max_from_gradient(
       gradient = initial_gradient,

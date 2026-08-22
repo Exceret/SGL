@@ -8,7 +8,7 @@ namespace sgl
 {
 
     /*
-     * Gradient of the unnormalized Logistic negative log-likelihood:
+     * Gradient of the mean Logistic negative log-likelihood:
      *
      *   L(beta) = sum_i [
      *       log(1 + exp(eta_i)) - y_i * eta_i
@@ -62,7 +62,9 @@ namespace sgl
                 }
                 value += x_ptr[i] * (probability - y_i);
             }
-            gradient_ptr[j] = value;
+            gradient_ptr[j] =
+                value /
+                static_cast<double>(n);
         }
     }
 

@@ -28,7 +28,8 @@ namespace sgl
                 eta_ptr[i] - y_ptr[i];
             loss += 0.5 * residual * residual;
         }
-        return loss;
+        return loss /
+               static_cast<double>(n);
     }
 
 } // namespace sgl

@@ -131,3 +131,79 @@ Rcpp::List sgl_center_scale_cpp(
                    X_transform
            );
 }
+
+// [[Rcpp::export]]
+arma::mat sgl_apply_center_scale_cpp(
+    const arma::mat& X,
+    const arma::mat& X_transform,
+    const bool standardize = true
+)
+{
+    const arma::uword p = X.n_cols;
+    if (X.n_rows == 0)
+    {
+        Rcpp::stop(
+            "X must contain at least one row."
+        );
+    }
+    if (p == 0)
+    {
+        Rcpp::stop(
+            "X must contain at least one column."
+        );
+    }
+    if (!X.is_finite())
+    {
+        Rcpp::stop(
+            "X must contain only finite values."
+        );
+    }
+    if (
+        X_transform.n_rows != p ||
+        X_transform.n_cols != 2
+    )
+    {
+        Rcpp::stop(
+            "X_transform must be a p x 2 matrix."
+        );
+    }
+    if (!X_transform.is_finite())
+    {
+        Rcpp::stop(
+            "X_transform must contain only finite values."
+        );
+    }
+    arma::mat X_transformed = X;
+    /*
+     * X_transform[, 1]：训练集均值
+     * X_transform[, 2]：训练集 scale
+     */
+    for (arma::uword j = 0; j < p; ++j)
+    {
+        const double mean_j =
+            X_transform(j, 0);
+        const double scale_j =
+            X_transform(j, 1);
+        if (
+            !std::isfinite(mean_j) ||
+            !std::isfinite(scale_j) ||
+            scale_j <= 0.0
+        )
+        {
+            Rcpp::stop(
+                "X_transform contains invalid mean or scale."
+            );
+        }
+        for (arma::uword i = 0;
+                i < X.n_rows;
+                ++i)
+        {
+            X_transformed(i, j) -= mean_j;
+            if (standardize)
+            {
+                X_transformed(i, j) /= scale_j;
+            }
+        }
+    }
+    return X_transformed;
+}

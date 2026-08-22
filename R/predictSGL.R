@@ -50,7 +50,11 @@ predict.SGL <- function(object, newX, lam, ...) {
   intercept <- 0
 
   if (object$type == "linear") {
-    intercept <- object$intercept
+    intercept <- if (length(object$intercept) == 1L) {
+      object$intercept
+    } else {
+      object$intercept[lam]
+    }
   }
   if (object$type == "logit") {
     intercept <- object$intercept[lam]

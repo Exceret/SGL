@@ -43,7 +43,8 @@ namespace sgl
                 stable_log1pexp(eta_i) -
                 y_ptr[i] * eta_i;
         }
-        return value;
+        return value /
+               static_cast<double>(n);
     }
 
 } // namespace sgl

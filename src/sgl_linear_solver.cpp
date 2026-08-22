@@ -9,6 +9,7 @@
 #include "sgl_linear_predictor.h"
 #include "sgl_linear_solver.h"
 #include "sgl_fista.h"
+#include "sgl_intercept_update.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -430,38 +431,13 @@ Rcpp::List sgl_linear_fit_cpp(
             eta_extrapolated,
             y
         );
-        const double inverse_n =
-            1.0 /
-            static_cast<double>(
-                X.n_rows
-            );
-        double *gradient_ptr =
-            gradient.memptr();
-        for (arma::uword j = 0;
-                j < gradient.n_elem;
-                ++j)
-        {
-            gradient_ptr[j] *=
-                inverse_n;
-        }
-        double intercept_gradient =
-            0.0;
-        if (fit_intercept)
-        {
-            const double *eta_ptr =
-                eta_extrapolated.memptr();
-            const double *y_ptr =
-                y.memptr();
-            for (arma::uword i = 0;
-                    i < eta_extrapolated.n_rows;
-                    ++i)
-            {
-                intercept_gradient +=
-                    eta_ptr[i] - y_ptr[i];
-            }
-            intercept_gradient *=
-                inverse_n;
-        }
+        const double intercept_gradient =
+            fit_intercept
+            ? sgl::linear_intercept_gradient(
+                eta_extrapolated,
+                y
+            )
+            : 0.0;
         /*
          * proximal 更新 extrapolated 状态。
          */
@@ -562,6 +538,369 @@ Rcpp::List sgl_linear_fit_cpp(
                    copy_arma_matrix(eta),
                Rcpp::_["objective"] =
                    objective,
+               Rcpp::_["iterations"] =
+                   iterations,
+               Rcpp::_["converged"] =
+                   converged
+           );
+}
+
+// [[Rcpp::export]]
+Rcpp::List sgl_linear_path_cpp(
+    const arma::mat& X,
+    const arma::mat& y,
+    const arma::mat& group_index,
+    const arma::mat& group_weight,
+    const arma::mat& initial_beta,
+    const arma::mat& initial_intercept,
+    const Rcpp::NumericVector& lambda_path,
+    const double alpha,
+    const double step_size,
+    const int max_iter,
+    const double tol,
+    const bool fit_intercept
+)
+{
+    if (!X.is_finite())
+    {
+        Rcpp::stop(
+            "X must contain only finite values."
+        );
+    }
+    check_column_matrix(
+        y,
+        "y"
+    );
+    check_column_matrix(
+        initial_beta,
+        "initial_beta"
+    );
+    if (X.n_rows == 0)
+    {
+        Rcpp::stop(
+            "X must contain at least one observation."
+        );
+    }
+    if (X.n_cols == 0)
+    {
+        Rcpp::stop(
+            "X must contain at least one variable."
+        );
+    }
+    if (X.n_rows != y.n_rows)
+    {
+        Rcpp::stop(
+            "nrow(y) must equal nrow(X)."
+        );
+    }
+    if (X.n_cols != initial_beta.n_rows)
+    {
+        Rcpp::stop(
+            "nrow(initial_beta) must equal ncol(X)."
+        );
+    }
+    if (
+        initial_intercept.n_rows != 1 ||
+        initial_intercept.n_cols != 1
+    )
+    {
+        Rcpp::stop(
+            "initial_intercept must be a 1 x 1 matrix."
+        );
+    }
+    if (!initial_intercept.is_finite())
+    {
+        Rcpp::stop(
+            "initial_intercept must contain only finite values."
+        );
+    }
+    check_unit_interval(
+        alpha,
+        "alpha"
+    );
+    if (!std::isfinite(step_size) || step_size <= 0.0)
+    {
+        Rcpp::stop(
+            "step_size must be finite and positive."
+        );
+    }
+    if (max_iter <= 0)
+    {
+        Rcpp::stop(
+            "max_iter must be positive."
+        );
+    }
+    if (!std::isfinite(tol) || tol <= 0.0)
+    {
+        Rcpp::stop(
+            "tol must be finite and positive."
+        );
+    }
+    const R_xlen_t n_lambda_r =
+        lambda_path.size();
+    if (n_lambda_r == 0)
+    {
+        Rcpp::stop(
+            "lambda_path must contain at least one value."
+        );
+    }
+    const arma::uword n_lambda =
+        static_cast<arma::uword>(n_lambda_r);
+    for (arma::uword lambda_index = 0;
+            lambda_index < n_lambda;
+            ++lambda_index)
+    {
+        check_nonnegative_finite(
+            lambda_path[lambda_index],
+            "lambda_path"
+        );
+    }
+    /*
+     * group layout 只构造一次。
+     */
+    const sgl::GroupLayout layout =
+        build_group_layout(group_index);
+    validate_group_weight(
+        group_weight,
+        layout.offsets.n_elem - 1
+    );
+    /*
+     * 按 lambda 从大到小计算。
+     * 输出仍保持用户传入的原始 lambda 顺序。
+     */
+    std::vector<arma::uword> calculation_order(
+        n_lambda
+    );
+    for (arma::uword lambda_index = 0;
+            lambda_index < n_lambda;
+            ++lambda_index)
+    {
+        calculation_order[lambda_index] =
+            lambda_index;
+    }
+    std::stable_sort(
+        calculation_order.begin(),
+        calculation_order.end(),
+        [&lambda_path](
+            const arma::uword a,
+            const arma::uword b
+        )
+    {
+        return lambda_path[a] >
+               lambda_path[b];
+    }
+    );
+    arma::mat beta =
+        initial_beta;
+    arma::mat intercept =
+        initial_intercept;
+    if (!fit_intercept)
+    {
+        intercept(0, 0) = 0.0;
+    }
+    arma::mat eta(
+        X.n_rows,
+        1,
+        arma::fill::none
+    );
+    sgl::initialize_linear_predictor_inplace(
+        eta,
+        X,
+        beta,
+        intercept
+    );
+    arma::mat gradient(
+        X.n_cols,
+        1,
+        arma::fill::none
+    );
+    arma::mat beta_path(
+        X.n_cols,
+        n_lambda,
+        arma::fill::zeros
+    );
+    Rcpp::NumericVector intercept_path(
+        n_lambda
+    );
+    Rcpp::NumericVector objective_path(
+        n_lambda
+    );
+    Rcpp::IntegerVector iterations(
+        n_lambda
+    );
+    Rcpp::LogicalVector converged(
+        n_lambda
+    );
+    arma::mat beta_extrapolated =
+        beta;
+    arma::mat intercept_extrapolated =
+        intercept;
+    arma::mat eta_extrapolated =
+        eta;
+    for (arma::uword position = 0;
+            position < n_lambda;
+            ++position)
+    {
+        const arma::uword lambda_index =
+            calculation_order[position];
+        const double lambda =
+            lambda_path[lambda_index];
+        const double lambda_l1 =
+            step_size *
+            lambda *
+            alpha;
+        const double lambda_group =
+            step_size *
+            lambda *
+            (1.0 - alpha);
+        /*
+         * 继承上一个 lambda 的 beta 和 intercept，
+         * 但不继承 FISTA 动量。
+         */
+        beta_extrapolated =
+            beta;
+        intercept_extrapolated =
+            intercept;
+        eta_extrapolated =
+            eta;
+        double fista_t =
+            1.0;
+        bool lambda_converged =
+            false;
+        int lambda_iterations =
+            0;
+        for (int iter = 0;
+                iter < max_iter;
+                ++iter)
+        {
+            /*
+             * 在 extrapolated 状态上计算梯度。
+             */
+            sgl::linear_gradient(
+                gradient,
+                X,
+                eta_extrapolated,
+                y
+            );
+            const double intercept_gradient =
+                fit_intercept
+                ? sgl::linear_intercept_gradient(
+                    eta_extrapolated,
+                    y
+                )
+                : 0.0;
+            /*
+             * beta 的 sparse-group proximal 更新，
+             * 同时增量更新 eta。
+             */
+            sgl::sparse_group_proximal_gradient_update_eta_inplace(
+                beta_extrapolated,
+                eta_extrapolated,
+                X,
+                gradient,
+                layout,
+                group_weight,
+                step_size,
+                lambda_l1,
+                lambda_group
+            );
+            /*
+             * 截距更新。
+             */
+            if (fit_intercept)
+            {
+                const double delta_intercept =
+                    -step_size *
+                    intercept_gradient;
+                intercept_extrapolated(0, 0) +=
+                    delta_intercept;
+                double *eta_extrapolated_ptr =
+                    eta_extrapolated.memptr();
+                for (arma::uword i = 0;
+                        i < eta_extrapolated.n_rows;
+                        ++i)
+                {
+                    eta_extrapolated_ptr[i] +=
+                        delta_intercept;
+                }
+            }
+            /*
+             * FISTA 提交当前解并生成下一轮 extrapolated 状态。
+             */
+            const double fista_t_next =
+                sgl::fista_next_t(
+                    fista_t
+                );
+            const double coefficient =
+                (fista_t - 1.0) /
+                fista_t_next;
+            const double beta_change =
+                sgl::fista_commit_and_extrapolate_inplace(
+                    beta,
+                    beta_extrapolated,
+                    eta,
+                    eta_extrapolated,
+                    coefficient
+                );
+            double intercept_change =
+                0.0;
+            if (fit_intercept)
+            {
+                intercept_change =
+                    sgl::fista_commit_scalar_and_extrapolate_inplace(
+                        intercept,
+                        intercept_extrapolated,
+                        coefficient
+                    );
+            }
+            const double change =
+                std::max(
+                    beta_change,
+                    intercept_change
+                );
+            const double scale =
+                1.0 +
+                max_abs_matrix(beta) +
+                std::abs(
+                    intercept(0, 0)
+                );
+            fista_t =
+                fista_t_next;
+            lambda_iterations =
+                iter + 1;
+            if (change <= tol * scale)
+            {
+                lambda_converged =
+                    true;
+                break;
+            }
+        }
+        beta_path.col(lambda_index) =
+                     beta;
+        intercept_path[lambda_index] =
+            intercept(0, 0);
+        objective_path[lambda_index] =
+            sgl::linear_sparse_group_objective(
+                beta,
+                eta,
+                y,
+                layout,
+                group_weight,
+                lambda,
+                alpha
+            );
+        iterations[lambda_index] =
+            lambda_iterations;
+        converged[lambda_index] =
+            lambda_converged;
+    }
+    return Rcpp::List::create(
+               Rcpp::_["beta_path"] =
+                   copy_arma_matrix(beta_path),
+               Rcpp::_["intercept_path"] =
+                   intercept_path,
+               Rcpp::_["objective_path"] =
+                   objective_path,
                Rcpp::_["iterations"] =
                    iterations,
                Rcpp::_["converged"] =

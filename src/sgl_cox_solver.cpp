@@ -528,6 +528,10 @@ Rcpp::List sgl_cox_fit_cpp(
         1,
         arma::fill::none
     );
+    sgl::CoxGradientWorkspace gradient_workspace(
+        X.n_rows,
+        X.n_cols
+    );
     arma::mat beta_extrapolated =
         beta;
     arma::mat eta_extrapolated =
@@ -555,6 +559,7 @@ Rcpp::List sgl_cox_fit_cpp(
             eta_extrapolated,
             status,
             risk_layout,
+            gradient_workspace,
             false
         );
         /*
@@ -827,6 +832,10 @@ Rcpp::List sgl_cox_path_cpp(
         1,
         arma::fill::none
     );
+    sgl::CoxGradientWorkspace gradient_workspace(
+        X.n_rows,
+        X.n_cols
+    );
     arma::mat beta_path(
         X.n_cols,
         n_lambda,
@@ -888,6 +897,7 @@ Rcpp::List sgl_cox_path_cpp(
                 eta_extrapolated,
                 status,
                 risk_layout,
+                gradient_workspace,
                 false
             );
             /*

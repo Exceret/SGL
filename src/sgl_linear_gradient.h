@@ -7,17 +7,11 @@ namespace sgl
 {
 
     /*
-     * Gradient of the unnormalized least-squares objective:
+     * Gradient of the mean least-squares objective:
      *
-     *   L(beta) = 1/2 * sum_i (eta_i - y_i)^2
+     *   L(beta) = 1/(2n) * sum_i (eta_i - y_i)^2
      *
-     *   dL/dbeta = X^T %*% (eta - y)
-     *
-     * eta, y    : n x 1 matrices
-     * gradient  : p x 1 matrix
-     *
-     * The residual is evaluated inside the accumulation loop and is not
-     * materialized as a separate n x 1 matrix.
+     *   dL/dbeta = X^T %*% (eta - y) / n
      */
     inline void linear_gradient(
     arma::mat& gradient,
@@ -41,7 +35,9 @@ namespace sgl
                     eta_ptr[i] - y_ptr[i];
                 value += x_ptr[i] * residual;
             }
-            gradient_ptr[j] = value;
+            gradient_ptr[j] =
+                value /
+                static_cast<double>(n);
         }
     }
 

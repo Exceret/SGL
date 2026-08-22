@@ -449,9 +449,6 @@ Rcpp::List sgl_logistic_fit_cpp(
                 sgl::logistic_intercept_gradient(
                     eta_extrapolated,
                     y
-                ) /
-                static_cast<double>(
-                    X.n_rows
                 );
         }
         sgl::logistic_gradient_inplace(
@@ -460,10 +457,6 @@ Rcpp::List sgl_logistic_fit_cpp(
             eta_extrapolated,
             y
         );
-        gradient /=
-            static_cast<double>(
-                X.n_rows
-            );
         /*
          * proximal 更新直接写入
          * beta_extrapolated / eta_extrapolated。
@@ -837,9 +830,6 @@ Rcpp::List sgl_logistic_path_cpp(
                     sgl::logistic_intercept_gradient(
                         eta_extrapolated,
                         y
-                    ) /
-                    static_cast<double>(
-                        X.n_rows
                     );
             }
             sgl::logistic_gradient_inplace(
@@ -848,10 +838,6 @@ Rcpp::List sgl_logistic_path_cpp(
                 eta_extrapolated,
                 y
             );
-            gradient /=
-                static_cast<double>(
-                    X.n_rows
-                );
             /*
              * proximal 更新必须作用于
              * beta_extrapolated 和 eta_extrapolated。

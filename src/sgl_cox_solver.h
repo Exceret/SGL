@@ -23,7 +23,20 @@ namespace sgl
         arma::uword n_active;
     };
 
+    struct CoxGradientWorkspace
+    {
+        std::vector<double> risk_xsum;
+        std::vector<double> scaled_weight;
 
+        CoxGradientWorkspace(
+            const arma::uword n,
+            const arma::uword p
+        )
+            : risk_xsum(p, 0.0),
+              scaled_weight(n, 0.0)
+        {
+        }
+    };
     /*
      * Breslow 负部分对数似然梯度。
      *
@@ -40,7 +53,7 @@ namespace sgl
      *
      * gradient：
      *
-     *   1 / n_events *
+     *   1 / n_active *
      *   sum_g [
      *       d_g * E_g(X | R_g)
      *       - sum_{i in D_g} X_i
@@ -52,6 +65,7 @@ namespace sgl
         const arma::mat& eta,
         const arma::mat& status,
         const CoxRiskLayout& layout,
+        CoxGradientWorkspace& workspace,
         const bool calculate_objective
     ) noexcept
     {
@@ -75,23 +89,13 @@ namespace sgl
             gradient_ptr + p,
             0.0
         );
-        /*
-         * risk_xsum[j] =
-         *   sum_{i in R_g} exp(eta_i - risk_max) * X(i, j)
-         */
-        std::vector<double> risk_xsum(
-            p,
-            0.0
-        );
-        /*
-         * scaled_weight[i] 保存当前时间组中样本的：
-         *
-         *   exp(eta_i - group_max)
-         *
-         * 这样后面按列访问 X 时无需重复计算 exp。
-         */
-        std::vector<double> scaled_weight(
-            n,
+        std::vector<double> &risk_xsum =
+            workspace.risk_xsum;
+        std::vector<double> &scaled_weight =
+            workspace.scaled_weight;
+        std::fill(
+            risk_xsum.begin(),
+            risk_xsum.end(),
             0.0
         );
         double risk_sum =

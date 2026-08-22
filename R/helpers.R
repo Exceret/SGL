@@ -56,3 +56,28 @@ SGL_cox_zero_gradient <- function(
     )
   )[, 1L]
 }
+
+SGL_transform_train_test <- function(
+  X_train,
+  X_test,
+  standardize = TRUE
+) {
+  transformed <- sgl_center_scale_cpp(
+    X = X_train,
+    standardize = isTRUE(standardize)
+  )
+
+  X_train_transformed <- transformed$x
+
+  X_test_transformed <- sgl_apply_center_scale_cpp(
+    X = X_test,
+    X_transform = transformed$X.transform,
+    standardize = isTRUE(standardize)
+  )
+
+  list(
+    x_train = X_train_transformed,
+    x_test = X_test_transformed,
+    X.transform = transformed$X.transform
+  )
+}
