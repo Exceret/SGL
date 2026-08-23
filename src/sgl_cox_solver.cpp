@@ -551,7 +551,7 @@ Rcpp::List sgl_cox_fit_cpp(
             ++iter)
     {
         /*
-         * Cox 梯度在 extrapolated eta 上计算。
+         * The Cox gradient is computed on the extrapolated eta.
          */
         sgl::cox_breslow_gradient_objective_inplace(
             gradient,
@@ -563,7 +563,7 @@ Rcpp::List sgl_cox_fit_cpp(
             false
         );
         /*
-         * proximal 更新 extrapolated 状态。
+         * Proximal update of the extrapolated state.
          */
         sgl::sparse_group_proximal_gradient_update_eta_inplace(
             beta_extrapolated,
@@ -584,8 +584,8 @@ Rcpp::List sgl_cox_fit_cpp(
             (fista_t - 1.0) /
             fista_t_next;
         /*
-         * 提交新的 beta/eta，
-         * 同时计算下一轮 extrapolated 状态。
+         * Commit the new beta/eta,
+         * and compute the extrapolated state for the next round.
          */
         const double beta_change =
             sgl::fista_commit_and_extrapolate_inplace(
@@ -768,8 +768,8 @@ Rcpp::List sgl_cox_path_cpp(
         );
     }
     /*
-     * 关键优化 1：
-     * 整条 lambda path 只构造一次 GroupLayout。
+     * Key optimization 1:
+     * The GroupLayout is built only once for the entire lambda path.
      */
     const sgl::GroupLayout group_layout =
         build_group_layout(
@@ -780,9 +780,9 @@ Rcpp::List sgl_cox_path_cpp(
         group_layout.offsets.n_elem - 1
     );
     /*
-     * 关键优化 2：
-     * time/status 不变，因此 CoxRiskLayout
-     * 只构造一次。
+     * Key optimization 2:
+     * time/status are unchanged, so the CoxRiskLayout
+     * is built only once.
      */
     const sgl::CoxRiskLayout risk_layout =
         build_cox_risk_layout(
@@ -790,8 +790,8 @@ Rcpp::List sgl_cox_path_cpp(
             status
         );
     /*
-     * 按 lambda 从大到小计算，
-     * 保留 warm start。
+     * Compute lambdas from largest to smallest,
+     * keeping the warm start.
      */
     std::vector<arma::uword> calculation_order(
         n_lambda
@@ -870,9 +870,9 @@ Rcpp::List sgl_cox_path_cpp(
             lambda *
             (1.0 - alpha);
         /*
-         * 新 lambda 使用上一个 lambda 的 beta
-         * 作为 warm start，但不继承上一个 lambda
-         * 的 FISTA 动量。
+         * The new lambda uses the previous lambda's beta
+         * as a warm start, but does not inherit the previous lambda's
+         * FISTA momentum.
          */
         beta_extrapolated =
             beta;
@@ -889,7 +889,7 @@ Rcpp::List sgl_cox_path_cpp(
                 ++iter)
         {
             /*
-             * 梯度在 extrapolated 状态上计算。
+             * The gradient is computed on the extrapolated state.
              */
             sgl::cox_breslow_gradient_objective_inplace(
                 gradient,
@@ -901,8 +901,8 @@ Rcpp::List sgl_cox_path_cpp(
                 false
             );
             /*
-             * proximal 更新也作用于
-             * extrapolated 状态。
+             * The proximal update also acts on the
+             * extrapolated state.
              */
             sgl::sparse_group_proximal_gradient_update_eta_inplace(
                 beta_extrapolated,
@@ -923,8 +923,8 @@ Rcpp::List sgl_cox_path_cpp(
                 (fista_t - 1.0) /
                 fista_t_next;
             /*
-             * 提交 proximal 结果到 beta/eta，
-             * 并生成下一轮 extrapolated 状态。
+             * Commit the proximal result to beta/eta,
+             * and generate the extrapolated state for the next round.
              */
             const double beta_change =
                 sgl::fista_commit_and_extrapolate_inplace(

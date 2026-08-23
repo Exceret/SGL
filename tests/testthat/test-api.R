@@ -1,5 +1,5 @@
-skip_if_not_installed("SGL")
 skip()
+skip_if_not_installed("SGL")
 
 make_sgl_test_data <- function(
   n = 120L,
@@ -151,9 +151,10 @@ is_tolerant <- function(x, y, tol = 1e-8) {
   if (!flag) {
     message("Tolerant: ", tol, ", diff: ", diff)
   }
+  flag
 }
 
-test_that("SGL dispatches all supported linear model", {
+test_that("SGL dispatches supported linear model", {
   data <- make_sgl_test_data()
 
   linear_fit <- SGL(
@@ -216,50 +217,125 @@ test_that("SGL dispatches all supported linear model", {
 })
 
 # ----------------------------------------------------------------------------
-logit_fit <- SGL(
-  data = list(
-    x = data$X,
-    y = data$y_logit
-  ),
-  index = data$index,
-  type = "logit",
-  step = 0.01
-)
+test_that("SGL dispatches supported logistic model", {
+  data <- make_sgl_test_data()
 
-cox_fit <- SGL(
-  data = list(
-    x = data$X,
-    y = data$y_cox
-  ),
-  index = data$index,
-  type = "cox",
-  lambdas = c(0.1, 0.05),
-  maxit = 800L,
-  thresh = 1e-6
-)
+  logit_fit <- SGL(
+    data = list(
+      x = data$X,
+      y = data$y_logit
+    ),
+    index = data$index,
+    type = "logit",
+    step = 0.01
+  )
 
-logit_fit_raw <- SGL::SGL(
-  data = list(
-    x = data$X,
-    y = data$y_logit
-  ),
-  index = data$index,
-  type = "logit",
-  step = 0.01
-)
+  logit_fit_raw <- SGL::SGL(
+    data = list(
+      x = data$X,
+      y = data$y_logit
+    ),
+    index = data$index,
+    type = "logit",
+    step = 0.01
+  )
 
-cox_fit_raw <- SGL::SGL(
-  data = list(
-    x = data$X,
-    time = data$y_cox[, 1L],
-    status = data$y_cox[, 2L]
-  ),
-  index = data$index,
-  type = "cox",
-  lambdas = c(0.1, 0.05),
-  maxit = 800L,
-  thresh = 1e-6
-)
+  expect_true(is_tolerant(logit_fit$beta, logit_fit_raw$beta))
+  expect_true(is_tolerant(logit_fit$intercept, logit_fit_raw$intercept))
+  expect_true(is_tolerant(logit_fit$lambdas, logit_fit_raw$lambdas))
+  expect_true(is_tolerant(
+    logit_fit$X.transform$X.means,
+    logit_fit_raw$X.transform$X.means
+  ))
+  expect_true(is_tolerant(
+    logit_fit$X.transform$X.scale,
+    logit_fit_raw$X.transform$X.scale
+  ))
+
+  cv_logit <- cvSGL(
+    data = list(
+      x = data$X,
+      y = data$y_logit
+    ),
+    index = data$index,
+    type = "logit",
+    lambdas = logit_fit$lambdas
+  )
+  cv_logit_raw <- SGL::cvSGL(
+    data = list(
+      x = data$X,
+      y = data$y_logit
+    ),
+    index = data$index,
+    type = "logit",
+    lambdas = logit_fit_raw$lambdas
+  )
+
+  expect_s3_class(cv_logit, "cvSGL")
+  expect_s3_class(cv_logit_raw, "cvSGL")
+})
+
+# ----------------------------------------------------------------------------
+test_that("SGL dispatches supported cox model", {
+  data <- make_sgl_test_data()
+
+  cox_fit <- SGL(
+    data = list(
+      x = data$X,
+      y = data$y_cox
+    ),
+    index = data$index,
+    type = "cox",
+    maxit = 800L,
+    thresh = 1e-6
+  )
+
+  cox_fit_raw <- SGL::SGL(
+    data = list(
+      x = data$X,
+      time = data$y_cox[, 1L],
+      status = data$y_cox[, 2L]
+    ),
+    index = data$index,
+    type = "cox",
+    maxit = 800L,
+    thresh = 1e-6
+  )
+
+  expect_true(is_tolerant(cox_fit$beta, cox_fit_raw$beta))
+  expect_true(is_tolerant(cox_fit$lambdas, cox_fit_raw$lambdas))
+  expect_true(is_tolerant(
+    cox_fit$X.transform$X.means,
+    cox_fit_raw$X.transform$X.means
+  ))
+  expect_true(is_tolerant(
+    cox_fit$X.transform$X.scale,
+    cox_fit_raw$X.transform$X.scale
+  ))
+
+  cv_cox <- cvSGL(
+    data = list(
+      x = data$X,
+      y = data$y_cox
+    ),
+    index = data$index,
+    type = "cox",
+    lambdas = cox_fit$lambdas
+  )
+  cv_cox_raw <- SGL::cvSGL(
+    data = list(
+      x = data$X,
+      time = data$y_cox[, 1L],
+      status = data$y_cox[, 2L]
+    ),
+    index = data$index,
+    type = "cox",
+    lambdas = cox_fit_raw$lambdas
+  )
+
+  expect_s3_class(cv_cox, "cvSGL")
+  expect_s3_class(cv_cox_raw, "cvSGL")
+})
 
 # microbenchmark::microbenchmark(
 #   cpp = {

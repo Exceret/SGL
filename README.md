@@ -6,6 +6,11 @@
 [![R-CMD-check](https://github.com/Exceret/SGL/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Exceret/SGL/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
+A modern implemetation of legacy SGL. Although both numerical stability
+and performance were taken into consideration, differences in the
+implementation may result in some discrepancies in the computed values
+compared with the original implementation.
+
 ## Installation
 
 You can install the development version of SGL from

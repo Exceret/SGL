@@ -4,7 +4,7 @@
 \alias{print.SGL}
 \title{Print a summary of an SGL solution path}
 \usage{
-\method{print}{SGL}(x, digits = max(3, getOption("digits") - 3), ...)
+\method{print}{SGL}(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 \arguments{
 \item{x}{A fitted \code{"SGL"} object.}

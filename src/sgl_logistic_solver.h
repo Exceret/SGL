@@ -11,11 +11,11 @@ namespace sgl
 {
 
     /*
-     * 计算 Logistic 梯度：
+     * Compute the Logistic gradient:
      *
      *   gradient = X^T %*% (plogis(eta) - y) / n
      *
-     * 不创建 probability 或 residual 临时向量。
+     * No probability or residual temporary vector is created.
      */
     inline void logistic_gradient_inplace(
     arma::mat& gradient,
@@ -47,18 +47,18 @@ namespace sgl
 
 
     /*
-     * 对 Logistic proximal-gradient 执行一次 beta 更新，
-     * 并同步增量更新 eta。
+     * Perform one beta update of the Logistic proximal-gradient method,
+     * and synchronously update eta incrementally.
      *
-     * gradient 已经是平均梯度：
+     * gradient is already the averaged gradient:
      *
      *   X^T(p-y) / n
      *
-     * lambda_l1：
+     * lambda_l1:
      *
      *   step_size * lambda * alpha
      *
-     * lambda_group：
+     * lambda_group:
      *
      *   step_size * lambda * (1-alpha)
      */
@@ -97,7 +97,7 @@ namespace sgl
                 lambda_group * weight_ptr[g];
             double squared_norm = 0.0;
             /*
-             * 第一遍：计算梯度步和 L1 soft-threshold 结果。
+             * First pass: compute the gradient step and the L1 soft-threshold result.
              */
             for (arma::uword k = begin;
                     k < end;
@@ -130,7 +130,7 @@ namespace sgl
                 }
             }
             /*
-             * 第二遍：更新 beta 和 eta。
+             * Second pass: update beta and eta.
              */
             for (arma::uword k = begin;
                     k < end;

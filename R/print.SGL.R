@@ -23,9 +23,9 @@
 #' print(fit)
 #'
 #' @export
-print.SGL <- function(x, digits = max(3, getOption("digits") - 3), ...) {
-  num.nonzero <- apply(x$beta, 2, function(z) {
-    sum(z != 0)
+print.SGL <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
+  num.nonzero <- apply(x$beta, 2L, function(z) {
+    sum(z != 0L)
   })
   message("\n regression type: ", x$type, "\n\n")
   print(cbind(lambdas = x$lambdas, num.nonzero = num.nonzero))

@@ -61,7 +61,7 @@ sgl_cox_fit <- function(
   status,
   group_index,
   lambda,
-  alpha = 1,
+  alpha = 1L,
   group_weight = NULL,
   step_size = NULL,
   max_iter = 1000L,
@@ -100,7 +100,7 @@ sgl_cox_fit <- function(
 
   if (
     !all(is.finite(status)) ||
-      !all(status[, 1L] %in% c(0, 1))
+      !all(status[, 1L] %in% c(0L, 1L))
   ) {
     stop("status must contain only 0 and 1.")
   }
@@ -123,14 +123,14 @@ sgl_cox_fit <- function(
     )
   }
 
-  if (sum(status[, 1L] == 1) == 0L) {
+  if (sum(status[, 1L] == 1L) == 0L) {
     stop("status must contain at least one event.")
   }
 
   if (
     length(lambda) != 1L ||
       !is.finite(lambda) ||
-      lambda < 0
+      lambda < 0L
   ) {
     stop(
       "lambda must be one finite non-negative value."
@@ -140,8 +140,8 @@ sgl_cox_fit <- function(
   if (
     length(alpha) != 1L ||
       !is.finite(alpha) ||
-      alpha < 0 ||
-      alpha > 1
+      alpha < 0L ||
+      alpha > 1L
   ) {
     stop("alpha must be in [0, 1].")
   }
@@ -162,7 +162,7 @@ sgl_cox_fit <- function(
 
   if (
     !all(is.finite(groups)) ||
-      any(groups < 1) ||
+      any(groups < 1L) ||
       any(groups != floor(groups))
   ) {
     stop(
@@ -203,7 +203,7 @@ sgl_cox_fit <- function(
 
     if (
       !all(is.finite(group_weight)) ||
-        any(group_weight < 0)
+        any(group_weight < 0L)
     ) {
       stop(
         "group_weight must be finite and non-negative."
@@ -213,7 +213,7 @@ sgl_cox_fit <- function(
 
   if (is.null(initial_beta)) {
     initial_beta <- matrix(
-      0,
+      0L,
       nrow = p,
       ncol = 1L
     )
@@ -236,15 +236,15 @@ sgl_cox_fit <- function(
   }
 
   if (is.null(step_size)) {
-    n_events <- sum(status[, 1L] == 1)
+    n_events <- sum(status[, 1L] == 1L)
 
-    step_size <- 1 / (1 + sum(X * X) / n_events)
+    step_size <- 1L / (1L + sum(X * X) / n_events)
   }
 
   if (
     length(step_size) != 1L ||
       !is.finite(step_size) ||
-      step_size <= 0
+      step_size <= 0L
   ) {
     stop(
       "step_size must be one finite positive value."

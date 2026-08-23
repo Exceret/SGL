@@ -60,7 +60,7 @@ sgl_logistic_fit <- function(
   y,
   group_index,
   lambda,
-  alpha = 1,
+  alpha = 1L,
   group_weight = NULL,
   step_size = NULL,
   max_iter = 1000L,
@@ -83,7 +83,7 @@ sgl_logistic_fit <- function(
     stop("y must be a single-column matrix.")
   }
 
-  if (!all(y[, 1L] %in% c(0, 1))) {
+  if (!all(y[, 1L] %in% c(0L, 1L))) {
     stop("y must contain only 0 and 1.")
   }
 
@@ -120,7 +120,7 @@ sgl_logistic_fit <- function(
   if (
     length(lambda) != 1L ||
       !is.finite(lambda) ||
-      lambda < 0
+      lambda < 0L
   ) {
     stop(
       "lambda must be one finite non-negative value."
@@ -130,8 +130,8 @@ sgl_logistic_fit <- function(
   if (
     length(alpha) != 1L ||
       !is.finite(alpha) ||
-      alpha < 0 ||
-      alpha > 1
+      alpha < 0L ||
+      alpha > 1L
   ) {
     stop("alpha must be in [0, 1].")
   }
@@ -142,7 +142,7 @@ sgl_logistic_fit <- function(
 
   if (
     !all(is.finite(groups)) ||
-      any(groups < 1) ||
+      any(groups < 1L) ||
       any(groups != floor(groups))
   ) {
     stop(
@@ -184,7 +184,7 @@ sgl_logistic_fit <- function(
 
   if (is.null(initial_beta)) {
     initial_beta <- matrix(
-      0,
+      0L,
       nrow = p,
       ncol = 1L
     )
@@ -200,7 +200,7 @@ sgl_logistic_fit <- function(
 
   if (is.null(initial_intercept)) {
     initial_intercept <- matrix(
-      0,
+      0L,
       nrow = 1L,
       ncol = 1L
     )
@@ -214,17 +214,17 @@ sgl_logistic_fit <- function(
   }
 
   if (is.null(step_size)) {
-    lipschitz_upper_bound <- 1 +
+    lipschitz_upper_bound <- 1L +
       0.25 * sum(X * X) / n
 
-    step_size <- 1 /
+    step_size <- 1L /
       lipschitz_upper_bound
   }
 
   if (
     length(step_size) != 1L ||
       !is.finite(step_size) ||
-      step_size <= 0
+      step_size <= 0L
   ) {
     stop(
       "step_size must be one finite positive value."

@@ -47,7 +47,7 @@ predict.SGL <- function(object, newX, lam, ...) {
     }
   }
 
-  intercept <- 0
+  intercept <- 0L
 
   if (object$type == "linear") {
     intercept <- if (length(object$intercept) == 1L) {
@@ -72,7 +72,7 @@ predict.SGL <- function(object, newX, lam, ...) {
   }
 
   if (object$type == "logit") {
-    y.pred <- exp(eta) / (1 + exp(eta))
+    y.pred <- exp(eta) / (1L + exp(eta))
   }
 
   if (object$type == "cox") {

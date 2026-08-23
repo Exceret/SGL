@@ -70,15 +70,15 @@ SGL <- function(
   data,
   index,
   type = "linear",
-  maxit = 1000,
+  maxit = 1000L,
   thresh = 0.001,
   min.frac = 0.1,
-  nlam = 20,
+  nlam = 20L,
   gamma = 0.8,
   standardize = TRUE,
   verbose = FALSE,
-  step = 1,
-  reset = 10,
+  step = 1L,
+  reset = 10L,
   alpha = 0.95,
   lambdas = NULL,
   .preprocessed = FALSE
@@ -126,7 +126,7 @@ SGL <- function(
 
   if (
     !all(is.finite(index_values)) ||
-      any(index_values < 1) ||
+      any(index_values < 1L) ||
       any(index_values != floor(index_values))
   ) {
     stop(
@@ -159,7 +159,7 @@ SGL <- function(
   if (
     length(maxit) != 1L ||
       is.na(maxit) ||
-      maxit <= 0 ||
+      maxit <= 0L ||
       maxit != as.integer(maxit)
   ) {
     stop("maxit must be one positive integer.")
@@ -168,7 +168,7 @@ SGL <- function(
   if (
     length(thresh) != 1L ||
       !is.finite(thresh) ||
-      thresh <= 0
+      thresh <= 0L
   ) {
     stop("thresh must be one finite positive value.")
   }
@@ -176,8 +176,8 @@ SGL <- function(
   if (
     length(min.frac) != 1L ||
       !is.finite(min.frac) ||
-      min.frac <= 0 ||
-      min.frac > 1
+      min.frac <= 0L ||
+      min.frac > 1L
   ) {
     stop("min.frac must be in (0, 1].")
   }
@@ -185,7 +185,7 @@ SGL <- function(
   if (
     length(nlam) != 1L ||
       is.na(nlam) ||
-      nlam <= 0 ||
+      nlam <= 0L ||
       nlam != as.integer(nlam)
   ) {
     stop("nlam must be one positive integer.")
@@ -194,8 +194,8 @@ SGL <- function(
   if (
     length(gamma) != 1L ||
       !is.finite(gamma) ||
-      gamma <= 0 ||
-      gamma >= 1
+      gamma <= 0L ||
+      gamma >= 1L
   ) {
     stop("gamma must be in (0, 1).")
   }
@@ -203,8 +203,8 @@ SGL <- function(
   if (
     length(alpha) != 1L ||
       !is.finite(alpha) ||
-      alpha < 0 ||
-      alpha > 1
+      alpha < 0L ||
+      alpha > 1L
   ) {
     stop("alpha must be in [0, 1].")
   }
@@ -212,7 +212,7 @@ SGL <- function(
   if (
     length(step) != 1L ||
       !is.finite(step) ||
-      step <= 0
+      step <= 0L
   ) {
     stop("step must be finite and positive.")
   }
@@ -220,7 +220,7 @@ SGL <- function(
   if (
     length(reset) != 1L ||
       is.na(reset) ||
-      reset < 0 ||
+      reset < 0L ||
       reset != as.integer(reset)
   ) {
     stop("reset must be a non-negative integer.")
@@ -231,7 +231,7 @@ SGL <- function(
       !is.numeric(lambdas) ||
         length(lambdas) == 0L ||
         !all(is.finite(lambdas)) ||
-        any(lambdas < 0)
+        any(lambdas < 0L)
     ) {
       stop(
         "lambdas must contain finite non-negative values."
@@ -257,8 +257,8 @@ SGL <- function(
     X_fit <- X
 
     X.transform <- list(
-      X.means = rep(0, p),
-      X.scale = rep(1, p)
+      X.means = rep(0L, p),
+      X.scale = rep(1L, p)
     )
   } else {
     transformed <- sgl_center_scale_cpp(
@@ -274,7 +274,7 @@ SGL <- function(
       X.scale = if (isTRUE(standardize)) {
         X_transform[, 2L]
       } else {
-        1
+        1L
       }
     )
   }
@@ -337,7 +337,7 @@ SGL <- function(
       gamma = gamma
     )
 
-    step_size <- step / (1 + sum(X_fit * X_fit) / n)
+    step_size <- step / (1L + sum(X_fit * X_fit) / n)
 
     calculation_order <- order(
       lambda_path,
@@ -351,7 +351,7 @@ SGL <- function(
       group_index = group_index,
       group_weight = group_weight,
       initial_beta = matrix(
-        0,
+        0L,
         nrow = p,
         ncol = 1L
       ),
@@ -410,7 +410,7 @@ SGL <- function(
     if (
       length(y) != n ||
         !all(is.finite(y)) ||
-        !all(y %in% c(0, 1))
+        !all(y %in% c(0L, 1L))
     ) {
       stop(
         "data$y must contain only 0 and 1 for type = 'logit'."
@@ -424,7 +424,7 @@ SGL <- function(
 
     initial_probability <- min(
       max(mean(y), 1e-8),
-      1 - 1e-8
+      1L - 1e-8
     )
 
     initial_intercept <- stats::qlogis(initial_probability)
@@ -450,7 +450,7 @@ SGL <- function(
       gamma = gamma
     )
 
-    step_size <- step / (1 + 0.25 * sum(X_fit * X_fit) / n)
+    step_size <- step / (1L + 0.25 * sum(X_fit * X_fit) / n)
 
     n_lambda <- length(lambda_path)
 
@@ -466,7 +466,7 @@ SGL <- function(
       group_index = group_index,
       group_weight = group_weight,
       initial_beta = matrix(
-        0,
+        0L,
         nrow = p,
         ncol = 1L
       ),
@@ -550,11 +550,11 @@ SGL <- function(
       gamma = gamma
     )
 
-    first_event_time <- min(time[status == 1])
+    first_event_time <- min(time[status == 1L])
 
     n_active <- sum(time >= first_event_time)
 
-    step_size <- step / (1 + sum(X_fit * X_fit) / n_active)
+    step_size <- step / (1L + sum(X_fit * X_fit) / n_active)
 
     calculation_order <- order(
       lambda_path,
@@ -577,7 +577,7 @@ SGL <- function(
       group_index = group_index,
       group_weight = group_weight,
       initial_beta = matrix(
-        0,
+        0L,
         nrow = p,
         ncol = 1L
       ),

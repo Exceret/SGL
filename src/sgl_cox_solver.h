@@ -38,20 +38,20 @@ namespace sgl
         }
     };
     /*
-     * Breslow 负部分对数似然梯度。
+     * Breslow negative partial-log-likelihood gradient.
      *
-     * 输入：
+     * Inputs:
      *
      *   X       : n x p
      *   eta     : n x 1
-     *   status  : n x 1，取值为 0/1
-     *   layout  : 按 time 降序排列的风险集布局
+     *   status  : n x 1, with values 0/1
+     *   layout  : risk-set layout sorted by time in decreasing order
      *
-     * 返回：
+     * Returns:
      *
      *   mean negative partial-log-likelihood
      *
-     * gradient：
+     * gradient:
      *
      *   1 / n_active *
      *   sum_g [
@@ -71,8 +71,8 @@ namespace sgl
     {
         const arma::uword p =
             X.n_cols;
-        const arma::uword n =
-            X.n_rows;
+        // const arma::uword n =
+        //     X.n_rows;
         const double *eta_ptr =
             eta.memptr();
         const double *status_ptr =
@@ -82,7 +82,7 @@ namespace sgl
         double *gradient_ptr =
             gradient.memptr();
         /*
-         * 梯度清零。
+         * Clear the gradient.
          */
         std::fill(
             gradient_ptr,
@@ -113,10 +113,10 @@ namespace sgl
             const arma::uword end =
                 layout.offsets[g + 1];
             /*
-             * 先计算加入当前时间组后的最大 eta。
+             * First compute the maximum eta after adding the current time group.
              *
-             * 与逐个样本更新 risk_max 相比，
-             * 这里每个时间组只进行一次整体 rescale。
+             * Compared with updating risk_max sample by sample,
+             * here each time group performs only a single overall rescale.
              */
             double group_max =
                 risk_max;
@@ -133,8 +133,8 @@ namespace sgl
                     );
             }
             /*
-             * 将之前的风险集从 risk_max
-             * 缩放到 group_max。
+             * Rescale the previous risk set from risk_max
+             * to group_max.
              */
             if (risk_sum != 0.0)
             {
@@ -153,8 +153,8 @@ namespace sgl
                 }
             }
             /*
-             * 计算当前时间组中每个样本的缩放权重，
-             * 同时累计风险集分母和事件 eta 总和。
+             * Compute the scaled weight of each sample in the current time group,
+             * while accumulating the risk-set denominator and the sum of event eta.
              */
             double added_risk_sum =
                 0.0;
@@ -187,10 +187,10 @@ namespace sgl
             risk_max =
                 group_max;
             /*
-             * 这里改为按照特征列访问 X。
+             * Here X is accessed column by column.
              *
-             * X.colptr(j) 对 Armadillo 的列主序布局更友好，
-             * 避免原来的 X(i, j) 行方向跨列访问。
+             * X.colptr(j) is friendlier to Armadillo's column-major layout,
+             * avoiding the previous X(i, j) row-wise access across columns.
              */
             if (n_events_group != 0)
             {
@@ -209,10 +209,10 @@ namespace sgl
                     double event_sum =
                         0.0;
                     /*
-                     * 当前时间组加入风险集。
+                     * Add the current time group to the risk set.
                      *
-                     * 风险集统计和事件样本统计
-                     * 在同一次列扫描中完成。
+                     * The risk-set statistics and the event-sample statistics
+                     * are computed in the same column scan.
                      */
                     for (arma::uword k = begin;
                             k < end;
@@ -245,8 +245,8 @@ namespace sgl
             else
             {
                 /*
-                 * 当前时间组没有事件，但仍然必须把
-                 * X 加入风险集。
+                 * The current time group has no events, but X must still be
+                 * added to the risk set.
                  */
                 for (arma::uword j = 0;
                         j < p;
@@ -324,10 +324,9 @@ namespace sgl
             const arma::uword end =
                 layout.offsets[g + 1];
             /*
-             * 将当前时间组加入风险集。
+             * Add the current time group to the risk set.
              *
-             * risk_sum 使用 risk_max 缩放，
-             * 避免 exp(eta) 溢出。
+             * risk_sum is scaled by risk_max to avoid overflow of exp(eta).
              */
             for (arma::uword k = begin;
                     k < end;
@@ -403,7 +402,7 @@ namespace sgl
     }
 
     /*
-     * Cox eta 初始化：
+     * Cox eta initialization:
      *
      *   eta = X %*% beta
      */
@@ -463,8 +462,8 @@ namespace sgl
     ) noexcept
     {
         /*
-         * 保留 X 参数以避免修改现有调用接口。
-         * 目标函数本身不再需要访问 X。
+         * Keep the X parameter to avoid changing the existing call interface.
+         * The objective function itself no longer needs to access X.
          */
         (void) X;
         const double loss =
