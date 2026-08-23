@@ -277,7 +277,7 @@ test_that("SGL dispatches supported logistic model", {
 
 # ----------------------------------------------------------------------------
 test_that("SGL dispatches supported cox model", {
-  data <- make_sgl_test_data()
+  data <- make_sgl_test_data(n = 50L)
 
   cox_fit <- SGL(
     data = list(

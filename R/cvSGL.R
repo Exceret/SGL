@@ -487,6 +487,7 @@ cvSGL <- function(
         prevals[ind.out, lambda_index] <- stats::plogis(eta_out)
       }
     } else {
+      # cox
       eta_train <- eta_all[ind.in, , drop = FALSE]
 
       for (lambda_index in seq_len(n_lambda)) {
@@ -508,7 +509,7 @@ cvSGL <- function(
 
         lldiffFold[lambda_index, fold] <- full_loss - train_loss
 
-        prevals[ind.out, lambda_index] <- eta_current[ind.out]
+        prevals[ind.out, lambda_index] <- exp(eta_current[ind.out])
       }
     }
 
